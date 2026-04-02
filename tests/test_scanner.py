@@ -22,7 +22,7 @@ class TestScanMarket:
     """Tests for scan_market()."""
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_payload(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(return_value=_mock_response([{"name": "BTC"}]))
 
@@ -34,7 +34,7 @@ class TestScanMarket:
         assert payload["limit"] == 10
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_calls_scan_endpoint(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(return_value=_mock_response([]))
 
@@ -44,7 +44,7 @@ class TestScanMarket:
         assert "/v1/scan" in url
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
@@ -56,7 +56,7 @@ class TestAnalyze:
     """Tests for analyze()."""
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_symbol_and_interval(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(
             return_value=_mock_response({"summary": {}, "indicators": {}})
@@ -69,7 +69,7 @@ class TestAnalyze:
         assert payload["interval"] == "4h"
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_calls_analyze_endpoint(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(return_value=_mock_response({"summary": {}}))
 
@@ -83,7 +83,7 @@ class TestMovers:
     """Tests for movers()."""
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_direction(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(
             return_value=_mock_response({"market": "crypto", "gainers": []})
@@ -97,7 +97,7 @@ class TestMovers:
         assert result["market"] == "crypto"
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner._client")
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_calls_movers_endpoint(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(return_value=_mock_response({"market": "crypto"}))
 
