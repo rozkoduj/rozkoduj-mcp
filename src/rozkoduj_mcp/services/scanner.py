@@ -7,7 +7,16 @@ import httpx
 
 _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
 _TIMEOUT = 20.0
-_client = httpx.AsyncClient(base_url=_API_URL, timeout=_TIMEOUT)
+
+# Managed by server.py lifespan — created on startup, closed on shutdown.
+client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    if client is None:
+        msg = "scanner.client not initialized — server lifespan not started"
+        raise RuntimeError(msg)
+    return client
 
 
 async def scan_market(
@@ -29,7 +38,7 @@ async def scan_market(
     }
 
     try:
-        resp = await _client.post("/v1/scan", json=payload)
+        resp = await _get_client().post("/v1/scan", json=payload)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         msg = f"Data API error for market {market!r}: {exc}"
@@ -44,7 +53,9 @@ async def analyze(
 ) -> dict[str, Any]:
     """Fetch technical analysis for a single symbol."""
     try:
-        resp = await _client.post("/v1/analyze", json={"symbol": symbol, "interval": interval})
+        resp = await _get_client().post(
+            "/v1/analyze", json={"symbol": symbol, "interval": interval}
+        )
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         msg = f"Data API error for {symbol}: {exc}"
@@ -60,7 +71,7 @@ async def movers(
 ) -> dict[str, Any]:
     """Top gainers/losers."""
     try:
-        resp = await _client.post(
+        resp = await _get_client().post(
             "/v1/movers", json={"market": market, "direction": direction, "limit": limit}
         )
         resp.raise_for_status()
