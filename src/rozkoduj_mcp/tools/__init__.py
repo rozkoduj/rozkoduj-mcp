@@ -1,0 +1,5 @@
+"""MCP tools package."""
+
+from typing import Literal
+
+Interval = Literal["1m", "5m", "15m", "30m", "1h", "2h", "4h", "1d", "1W", "1M"]
