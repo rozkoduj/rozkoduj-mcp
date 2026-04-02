@@ -1,8 +1,27 @@
 """MCP server instance for rozkoduj-mcp."""
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
+import httpx
 from mcp.server.fastmcp import FastMCP
+
+from rozkoduj_mcp.services import scanner
+
+_API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
+
+
+@asynccontextmanager
+async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
+    """Manage httpx client lifecycle — proper startup/shutdown."""
+    scanner.client = httpx.AsyncClient(base_url=_API_URL, timeout=20.0)
+    try:
+        yield None
+    finally:
+        await scanner.client.aclose()
+        scanner.client = None
+
 
 mcp = FastMCP(
     "rozkoduj",
@@ -16,6 +35,7 @@ mcp = FastMCP(
     port=int(os.environ.get("PORT", "8080")),
     stateless_http=True,
     json_response=True,
+    lifespan=app_lifespan,
 )
 
 # Import tool modules so @mcp.tool() decorators register with the server.
