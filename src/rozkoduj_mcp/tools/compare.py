@@ -1,5 +1,6 @@
 """MCP tool: compare TA across multiple symbols."""
 
+import asyncio
 from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
@@ -21,24 +22,21 @@ async def compare(
         msg = "symbols must contain at most 10 entries"
         raise ValueError(msg)
 
-    results: list[dict[str, Any]] = []
+    analyses = await asyncio.gather(
+        *(ta_service.get_analysis(sym, "", "", interval) for sym in symbols)
+    )
 
-    for sym in symbols:
-        data = await ta_service.get_analysis(sym, "", "", interval)
-        indicators = data.get("indicators", {})
-
-        results.append(
-            {
-                "symbol": data.get("symbol", sym),
-                "exchange": data.get("exchange", ""),
-                "recommendation": data.get("summary", {}).get("recommendation", "NEUTRAL"),
-                "rsi": indicators.get("RSI"),
-                "macd": indicators.get("MACD.macd"),
-                "macd_signal": indicators.get("MACD.signal"),
-                "adx": indicators.get("ADX"),
-                "oscillators": data.get("oscillators", {}),
-                "moving_averages": data.get("moving_averages", {}),
-            }
-        )
-
-    return results
+    return [
+        {
+            "symbol": data.get("symbol", sym),
+            "exchange": data.get("exchange", ""),
+            "recommendation": data.get("summary", {}).get("recommendation", "NEUTRAL"),
+            "rsi": data.get("indicators", {}).get("RSI"),
+            "macd": data.get("indicators", {}).get("MACD.macd"),
+            "macd_signal": data.get("indicators", {}).get("MACD.signal"),
+            "adx": data.get("indicators", {}).get("ADX"),
+            "oscillators": data.get("oscillators", {}),
+            "moving_averages": data.get("moving_averages", {}),
+        }
+        for sym, data in zip(symbols, analyses, strict=True)
+    ]

@@ -1,5 +1,6 @@
 """MCP tool: multi-timeframe analysis with alignment scoring."""
 
+import asyncio
 from collections import Counter
 from typing import Any, Literal
 
@@ -31,11 +32,12 @@ async def multitf(
     """
     tfs = timeframes if timeframes else _DEFAULT_TIMEFRAMES
 
+    all_data = await asyncio.gather(*(ta_service.get_analysis(symbol, "", "", tf) for tf in tfs))
+
     analyses: list[dict[str, Any]] = []
     directions: list[str] = []
 
-    for tf in tfs:
-        data = await ta_service.get_analysis(symbol, "", "", tf)
+    for tf, data in zip(tfs, all_data, strict=True):
         rec = data.get("summary", {}).get("recommendation", "NEUTRAL")
         direction = _classify(rec)
         directions.append(direction)
@@ -53,9 +55,10 @@ async def multitf(
     counts = Counter(directions)
     top_direction, top_count = counts.most_common(1)[0]
 
+    first = all_data[0]
     return {
-        "symbol": data.get("symbol", symbol),
-        "exchange": data.get("exchange", ""),
+        "symbol": first.get("symbol", symbol),
+        "exchange": first.get("exchange", ""),
         "analysis": analyses,
         "alignment": {
             "direction": top_direction,
