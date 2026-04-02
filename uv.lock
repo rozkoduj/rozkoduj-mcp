@@ -728,6 +728,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "anyio" },
     { name = "coverage" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -743,6 +744,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "anyio", specifier = ">=4.13" },
     { name = "coverage", specifier = ">=7.13" },
     { name = "mypy", specifier = ">=1.20.0" },
     { name = "pre-commit", specifier = ">=4.5" },
