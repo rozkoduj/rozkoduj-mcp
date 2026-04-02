@@ -50,7 +50,7 @@ select = [
     "E", "W", "F", "I", "N", "UP", "B", "SIM", "TCH", "RUF", "PTH", "PERF",
     "S", "T20", "C4", "A",
 ]
-ignore = ["E501", "S101", "S104"]
+ignore = ["E501", "S101", "S104", "TC001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["rozkoduj_mcp"]
