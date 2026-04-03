@@ -29,6 +29,7 @@ mcp = FastMCP(
         "Market screening and technical analysis for stocks, crypto, and forex. "
         "Use 'scan' to screen markets, 'analyze' for single-symbol TA, "
         "'score' for holistic 0-100 scoring, 'fundamentals' for valuation and analyst data, "
+        "'buzz' for per-ticker attention signal (news + Wikipedia), "
         "'market_pulse' for market regime (RISK-ON/OFF), "
         "'calendar' for economic events, 'smart_screen' for preset screens "
         "(unusual_volume, oversold_bounce, breakout, momentum, dividend), "
@@ -43,6 +44,7 @@ mcp = FastMCP(
 
 # Import tool modules so @mcp.tool() decorators register with the server.
 import rozkoduj_mcp.tools.analyze as _analyze  # noqa: F401, E402
+import rozkoduj_mcp.tools.buzz as _buzz  # noqa: F401, E402
 import rozkoduj_mcp.tools.calendar as _calendar  # noqa: F401, E402
 import rozkoduj_mcp.tools.compare as _compare  # noqa: F401, E402
 import rozkoduj_mcp.tools.fundamentals as _fundamentals  # noqa: F401, E402
