@@ -24,7 +24,7 @@ class TestIdeas:
 
         result = await ideas("AAPL")
 
-        mock_scanner.ideas.assert_called_once_with("AAPL", sort="trending", limit=10)
+        mock_scanner.ideas.assert_called_once_with("AAPL", sort="recent", limit=10)
         assert result["sentiment"]["ratio"] == 0.78
 
     @pytest.mark.anyio
@@ -43,4 +43,4 @@ class TestIdeas:
 
         await ideas("AAPL", limit=999)
 
-        mock_scanner.ideas.assert_called_once_with("AAPL", sort="trending", limit=20)
+        mock_scanner.ideas.assert_called_once_with("AAPL", sort="recent", limit=20)
