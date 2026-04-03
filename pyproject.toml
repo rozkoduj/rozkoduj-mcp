@@ -73,6 +73,7 @@ xfail_strict = true
 
 [tool.coverage.run]
 source = ["rozkoduj_mcp"]
+omit = ["src/rozkoduj_mcp/__init__.py"]
 
 [tool.coverage.report]
 exclude_lines = ["if __name__", "pragma: no cover"]
