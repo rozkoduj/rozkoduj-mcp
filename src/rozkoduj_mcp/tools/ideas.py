@@ -9,7 +9,7 @@ from rozkoduj_mcp.services import scanner
 @mcp.tool()
 async def ideas(
     symbol: str,
-    sort: Literal["trending", "recent", "week_popular"] = "trending",
+    sort: Literal["recent", "trending", "week_popular"] = "recent",
     limit: int = 10,
 ) -> dict[str, Any]:
     """Get community trading ideas for a symbol.

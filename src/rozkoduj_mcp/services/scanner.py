@@ -103,7 +103,7 @@ async def fundamentals(symbol: str) -> dict[str, Any]:
     return resp.json()  # type: ignore[no-any-return]
 
 
-async def ideas(symbol: str, sort: str = "trending", limit: int = 10) -> dict[str, Any]:
+async def ideas(symbol: str, sort: str = "recent", limit: int = 10) -> dict[str, Any]:
     """Fetch community trading ideas for a symbol."""
     try:
         resp = await _get_client().get(
