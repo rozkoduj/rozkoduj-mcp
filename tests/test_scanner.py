@@ -6,7 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from rozkoduj_mcp.services.scanner import _get_client, analyze, movers, scan_market, score
+from rozkoduj_mcp.services.scanner import (
+    _get_client,
+    analyze,
+    fundamentals,
+    movers,
+    scan_market,
+    score,
+)
 
 
 class TestGetClient:
@@ -149,3 +156,30 @@ class TestScore:
 
         with pytest.raises(RuntimeError, match="Data API error"):
             await score(symbol="AAPL")
+
+
+class TestFundamentals:
+    """Tests for fundamentals()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_symbol(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"symbol": "AAPL", "sector": "Technology"})
+        )
+
+        result = await fundamentals(symbol="AAPL")
+
+        payload = mock_client.post.call_args[1]["json"]
+        assert payload["symbol"] == "AAPL"
+        assert result["sector"] == "Technology"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_fundamentals_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(return_value=_mock_response({"symbol": "AAPL"}))
+
+        await fundamentals(symbol="AAPL")
+
+        url = mock_client.post.call_args[0][0]
+        assert "/fundamentals" in url

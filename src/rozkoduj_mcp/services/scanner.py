@@ -89,3 +89,15 @@ async def score(
         raise RuntimeError(msg) from exc
 
     return resp.json()  # type: ignore[no-any-return]
+
+
+async def fundamentals(symbol: str) -> dict[str, Any]:
+    """Fetch fundamental data for a symbol."""
+    try:
+        resp = await _get_client().post("/fundamentals", json={"symbol": symbol})
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        msg = f"Data API error for fundamentals {symbol}: {exc}"
+        raise RuntimeError(msg) from exc
+
+    return resp.json()  # type: ignore[no-any-return]
