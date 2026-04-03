@@ -6,7 +6,7 @@
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Real-time market intelligence for AI assistants. Screen 3000+ fields across stocks, crypto, forex. Technical analysis with BUY/SELL ratings. No API key needed.
+Real-time market intelligence for AI assistants. Screen 3000+ fields across stocks, crypto, forex. Technical analysis, holistic scoring, fundamental data, community sentiment, economic calendar, and smart preset screens. No API key needed.
 
 ## Installation
 
@@ -127,30 +127,51 @@ For clients that support remote MCP:
 
 ## Available Tools
 
+### Market Screening
+
 | Tool | Description |
 | ---- | ----------- |
 | `scan` | Screen markets with 3000+ fields, 26 filter operators, 78 markets. Filter by any indicator, volume, market cap, and more. |
-| `analyze` | Single-symbol technical analysis: composite BUY/SELL/NEUTRAL rating + RSI, MACD, Bollinger Bands, ADX, and 30+ indicators. |
+| `smart_screen` | Pre-built intelligent screens. Presets: `unusual_volume`, `oversold_bounce`, `breakout`, `momentum`, `dividend`. |
 | `movers` | Top gainers and losers across any market. Supports crypto, stocks, forex. |
+
+### Analysis
+
+| Tool | Description |
+| ---- | ----------- |
+| `score` | Holistic 0-100 score combining technical rating (40%), momentum (25%), volume quality (15%), and trend strength (20%). Returns a single actionable number with breakdown. |
+| `analyze` | Single-symbol technical analysis: composite BUY/SELL/NEUTRAL rating + RSI, MACD, Bollinger Bands, ADX, and 30+ indicators across any timeframe. |
+| `fundamentals` | Valuation (P/E, P/B, EV/EBITDA), quality scores (Piotroski F-Score, Altman Z-Score), analyst consensus (buy/hold/sell counts, 12-month price targets), upcoming earnings date with EPS forecast, and dividend data. |
 | `compare` | Side-by-side technical analysis for up to 10 symbols at once. |
 | `multitf` | Multi-timeframe analysis with alignment scoring. Default: 15m, 1h, 4h, 1d, 1W. |
+
+### Market Intelligence
+
+| Tool | Description |
+| ---- | ----------- |
+| `ideas` | Community trading ideas with aggregate sentiment. Returns idea direction (long/short/neutral), likes, author, chart URL, and long/short ratio across recent ideas. |
+| `calendar` | Economic calendar with upcoming macro events. Filter by days ahead, countries, and importance level. Shows actual vs forecast vs previous values. |
 
 ## Example Prompts
 
 ```
-Scan crypto for RSI below 30 with rising volume
-Analyze BTCUSDT on 4h timeframe
-Compare AAPL, MSFT, GOOGL technical indicators
-Show me top crypto gainers today
-Multi-timeframe analysis for ETHUSDT — is it aligned bullish?
-Screen US stocks with market cap above 10B sorted by change
+Score AAPL - should I buy?
+What's the Piotroski F-Score for NVDA? Show me analyst price targets.
+Find unusual volume stocks in the US market right now.
+Show me oversold bounce candidates in crypto.
+What community ideas are trending for BTCUSD?
+What economic events are happening this week?
+Compare AAPL, MSFT, GOOGL technical indicators.
+Multi-timeframe analysis for ETHUSDT - is it aligned bullish?
+Screen US stocks with market cap above 10B sorted by change.
+Show me high-dividend stocks with sustainable payout ratios.
 ```
 
 ## Data
 
 Real-time market data via [rozkoduj](https://rozkoduj.com) data API. No API key. No paid feeds.
 
-Auto-detects exchanges — `BTCUSDT` resolves to Binance, `AAPL` to NASDAQ, `EURUSD` to Forex.
+Auto-detects exchanges: `BTCUSDT` resolves to Binance, `AAPL` to NASDAQ, `EURUSD` to Forex.
 
 ## Self-Hosting
 
