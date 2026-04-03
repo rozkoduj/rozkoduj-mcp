@@ -149,7 +149,8 @@ For clients that support remote MCP:
 
 | Tool | Description |
 | ---- | ----------- |
-| `ideas` | Community trading ideas with aggregate sentiment. Returns idea direction (long/short/neutral), likes, author, chart URL, and long/short ratio across recent ideas. |
+| `market_pulse` | Market regime detection: CNN Fear & Greed (US stocks, 7 sub-indicators), Alternative.me Fear & Greed (crypto), and VIX. Returns RISK-ON, RISK-OFF, or NEUTRAL verdict. |
+| `buzz` | Per-ticker attention signal using Wikipedia pageview trends. Detects spikes in public interest. Works globally — any company with a Wikipedia article. |
 | `calendar` | Economic calendar with upcoming macro events. Filter by days ahead, countries, and importance level. Shows actual vs forecast vs previous values. |
 
 ## Example Prompts
@@ -157,9 +158,10 @@ For clients that support remote MCP:
 ```
 Score AAPL - should I buy?
 What's the Piotroski F-Score for NVDA? Show me analyst price targets.
+What's the current market regime? Risk-on or risk-off?
 Find unusual volume stocks in the US market right now.
 Show me oversold bounce candidates in crypto.
-What community ideas are trending for BTCUSD?
+Check the buzz around CD Projekt (wiki_article: CD_Projekt).
 What economic events are happening this week?
 Compare AAPL, MSFT, GOOGL technical indicators.
 Multi-timeframe analysis for ETHUSDT - is it aligned bullish?
