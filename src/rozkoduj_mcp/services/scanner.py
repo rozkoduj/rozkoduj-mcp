@@ -103,6 +103,18 @@ async def fundamentals(symbol: str) -> dict[str, Any]:
     return resp.json()  # type: ignore[no-any-return]
 
 
+async def market_pulse() -> dict[str, Any]:
+    """Get market regime: stocks + crypto fear/greed + VIX."""
+    try:
+        resp = await _get_client().get("/market-pulse")
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        msg = f"Data API error for market-pulse: {exc}"
+        raise RuntimeError(msg) from exc
+
+    return resp.json()  # type: ignore[no-any-return]
+
+
 async def calendar(days: int = 7, countries: str = "US", importance: int = 0) -> dict[str, Any]:
     """Fetch economic calendar events."""
     try:
