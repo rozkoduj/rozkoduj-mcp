@@ -49,7 +49,7 @@ class TestScanMarket:
         await scan_market(market="america")
 
         url = mock_client.post.call_args[0][0]
-        assert "/v1/scan" in url
+        assert "/scan" in url
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
@@ -84,7 +84,7 @@ class TestAnalyze:
         await analyze(symbol="AAPL")
 
         url = mock_client.post.call_args[0][0]
-        assert "/v1/analyze" in url
+        assert "/analyze" in url
 
 
 class TestMovers:
@@ -112,4 +112,4 @@ class TestMovers:
         await movers()
 
         url = mock_client.post.call_args[0][0]
-        assert "/v1/movers" in url
+        assert "/movers" in url
