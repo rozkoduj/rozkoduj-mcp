@@ -16,4 +16,4 @@ async def analyze(
 
     Auto-detects exchange. Returns composite rating plus detailed indicators.
     """
-    return await ta_service.get_analysis(symbol, "", "", interval)
+    return await ta_service.get_analysis(symbol, interval)

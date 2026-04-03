@@ -18,7 +18,7 @@ class TestAnalyze:
 
         result = await analyze("BTCUSDT")
 
-        mock_ta.get_analysis.assert_called_once_with("BTCUSDT", "", "", "1d")
+        mock_ta.get_analysis.assert_called_once_with("BTCUSDT", "1d")
         assert result["summary"]["recommendation"] == "BUY"
 
     @pytest.mark.anyio
@@ -28,7 +28,7 @@ class TestAnalyze:
 
         await analyze("AAPL", interval="4h")
 
-        mock_ta.get_analysis.assert_called_once_with("AAPL", "", "", "4h")
+        mock_ta.get_analysis.assert_called_once_with("AAPL", "4h")
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.analyze.ta_service")
