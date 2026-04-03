@@ -34,7 +34,7 @@ async def scan_market(
     }
 
     try:
-        resp = await _get_client().post("/v1/scan", json=payload)
+        resp = await _get_client().post("/scan", json=payload)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         msg = f"Data API error for market {market!r}: {exc}"
@@ -50,7 +50,7 @@ async def analyze(
     """Fetch technical analysis for a single symbol."""
     try:
         resp = await _get_client().post(
-            "/v1/analyze", json={"symbol": symbol, "interval": interval}
+            "/analyze", json={"symbol": symbol, "interval": interval}
         )
         resp.raise_for_status()
     except httpx.HTTPError as exc:
@@ -68,7 +68,7 @@ async def movers(
     """Top gainers/losers."""
     try:
         resp = await _get_client().post(
-            "/v1/movers", json={"market": market, "direction": direction, "limit": limit}
+            "/movers", json={"market": market, "direction": direction, "limit": limit}
         )
         resp.raise_for_status()
     except httpx.HTTPError as exc:
