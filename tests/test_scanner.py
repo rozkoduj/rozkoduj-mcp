@@ -6,7 +6,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from rozkoduj_mcp.services.scanner import analyze, movers, scan_market
+from rozkoduj_mcp.services.scanner import _get_client, analyze, movers, scan_market
+
+
+class TestGetClient:
+    """Tests for _get_client()."""
+
+    def test_raises_when_not_initialized(self) -> None:
+        with pytest.raises(RuntimeError, match="not initialized"):
+            _get_client()
 
 
 def _mock_response(data: Any, status: int = 200) -> MagicMock:

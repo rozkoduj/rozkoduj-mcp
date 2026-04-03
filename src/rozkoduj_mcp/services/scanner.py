@@ -1,12 +1,8 @@
 """Async client for the rozkoduj data API."""
 
-import os
 from typing import Any
 
 import httpx
-
-_API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
-_TIMEOUT = 20.0
 
 # Managed by server.py lifespan — created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
