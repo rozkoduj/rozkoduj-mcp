@@ -11,6 +11,7 @@ from rozkoduj_mcp.services.scanner import (
     analyze,
     calendar,
     fundamentals,
+    market_pulse,
     movers,
     scan_market,
     score,
@@ -184,6 +185,23 @@ class TestFundamentals:
 
         url = mock_client.post.call_args[0][0]
         assert "/fundamentals" in url
+
+
+class TestMarketPulse:
+    """Tests for market_pulse()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_market_pulse_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"verdict": "RISK-OFF", "vix": 24.5})
+        )
+
+        result = await market_pulse()
+
+        url = mock_client.get.call_args[0][0]
+        assert "/market-pulse" in url
+        assert result["verdict"] == "RISK-OFF"
 
 
 class TestCalendar:
