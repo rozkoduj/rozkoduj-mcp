@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from rozkoduj_mcp.services.scanner import _get_client, analyze, movers, scan_market
+from rozkoduj_mcp.services.scanner import _get_client, analyze, movers, scan_market, score
 
 
 class TestGetClient:
@@ -113,3 +113,39 @@ class TestMovers:
 
         url = mock_client.post.call_args[0][0]
         assert "/movers" in url
+
+
+class TestScore:
+    """Tests for score()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_symbol_and_interval(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"symbol": "AAPL", "score": 78.0, "label": "BUY"})
+        )
+
+        result = await score(symbol="AAPL", interval="1d")
+
+        payload = mock_client.post.call_args[1]["json"]
+        assert payload["symbol"] == "AAPL"
+        assert payload["interval"] == "1d"
+        assert result["score"] == 78.0
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_score_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(return_value=_mock_response({"score": 50.0}))
+
+        await score(symbol="BTCUSDT")
+
+        url = mock_client.post.call_args[0][0]
+        assert "/score" in url
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await score(symbol="AAPL")

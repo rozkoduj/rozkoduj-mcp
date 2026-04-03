@@ -28,8 +28,8 @@ mcp = FastMCP(
     instructions=(
         "Market screening and technical analysis for stocks, crypto, and forex. "
         "Use 'scan' to screen markets, 'analyze' for single-symbol TA, "
-        "'movers' for top gainers/losers, 'compare' for multi-symbol comparison, "
-        "'multitf' for multi-timeframe analysis."
+        "'score' for holistic 0-100 scoring, 'movers' for top gainers/losers, "
+        "'compare' for multi-symbol comparison, 'multitf' for multi-timeframe analysis."
     ),
     host="0.0.0.0",
     stateless_http=True,
@@ -43,3 +43,4 @@ import rozkoduj_mcp.tools.compare as _compare  # noqa: F401, E402
 import rozkoduj_mcp.tools.movers as _movers  # noqa: F401, E402
 import rozkoduj_mcp.tools.multitf as _multitf  # noqa: F401, E402
 import rozkoduj_mcp.tools.scan as _scan  # noqa: F401, E402
+import rozkoduj_mcp.tools.score as _score  # noqa: F401, E402

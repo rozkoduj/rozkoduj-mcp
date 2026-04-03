@@ -74,3 +74,18 @@ async def movers(
         raise RuntimeError(msg) from exc
 
     return resp.json()  # type: ignore[no-any-return]
+
+
+async def score(
+    symbol: str,
+    interval: str = "1d",
+) -> dict[str, Any]:
+    """Get holistic 0-100 score for a symbol."""
+    try:
+        resp = await _get_client().post("/score", json={"symbol": symbol, "interval": interval})
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        msg = f"Data API error for score {symbol}: {exc}"
+        raise RuntimeError(msg) from exc
+
+    return resp.json()  # type: ignore[no-any-return]
