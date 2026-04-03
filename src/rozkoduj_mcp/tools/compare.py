@@ -21,9 +21,7 @@ async def compare(
         msg = "symbols must contain at most 10 entries"
         raise ValueError(msg)
 
-    analyses = await asyncio.gather(
-        *(ta_service.get_analysis(sym, interval) for sym in symbols)
-    )
+    analyses = await asyncio.gather(*(ta_service.get_analysis(sym, interval) for sym in symbols))
 
     return [
         {
