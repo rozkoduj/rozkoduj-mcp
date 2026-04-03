@@ -31,8 +31,6 @@ mcp = FastMCP(
         "'movers' for top gainers/losers, 'compare' for multi-symbol comparison, "
         "'multitf' for multi-timeframe analysis."
     ),
-    host=os.environ.get("HOST", "0.0.0.0"),
-    port=int(os.environ.get("PORT", "8080")),
     stateless_http=True,
     json_response=True,
     lifespan=app_lifespan,
