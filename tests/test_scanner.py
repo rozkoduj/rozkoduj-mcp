@@ -9,6 +9,7 @@ import pytest
 from rozkoduj_mcp.services.scanner import (
     _get_client,
     analyze,
+    buzz,
     calendar,
     fundamentals,
     market_pulse,
@@ -185,6 +186,34 @@ class TestFundamentals:
 
         url = mock_client.post.call_args[0][0]
         assert "/fundamentals" in url
+
+
+class TestBuzz:
+    """Tests for buzz()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_params(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"query": "JSW", "attention": "HIGH"})
+        )
+
+        result = await buzz(query="JSW akcje", lang="pl", wiki_article="JSW_SA")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["query"] == "JSW akcje"
+        assert params["lang"] == "pl"
+        assert result["attention"] == "HIGH"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_buzz_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"attention": "LOW"}))
+
+        await buzz(query="AAPL stock")
+
+        url = mock_client.get.call_args[0][0]
+        assert "/buzz" in url
 
 
 class TestMarketPulse:

@@ -103,6 +103,21 @@ async def fundamentals(symbol: str) -> dict[str, Any]:
     return resp.json()  # type: ignore[no-any-return]
 
 
+async def buzz(query: str, lang: str = "en", wiki_article: str | None = None) -> dict[str, Any]:
+    """Get attention signal: news count + Wikipedia pageview trend."""
+    try:
+        params: dict[str, str | int] = {"query": query, "lang": lang}
+        if wiki_article:
+            params["wiki_article"] = wiki_article
+        resp = await _get_client().get("/buzz", params=params)
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        msg = f"Data API error for buzz {query}: {exc}"
+        raise RuntimeError(msg) from exc
+
+    return resp.json()  # type: ignore[no-any-return]
+
+
 async def market_pulse() -> dict[str, Any]:
     """Get market regime: stocks + crypto fear/greed + VIX."""
     try:
