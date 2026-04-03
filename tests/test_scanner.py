@@ -9,7 +9,9 @@ import pytest
 from rozkoduj_mcp.services.scanner import (
     _get_client,
     analyze,
+    calendar,
     fundamentals,
+    ideas,
     movers,
     scan_market,
     score,
@@ -183,3 +185,53 @@ class TestFundamentals:
 
         url = mock_client.post.call_args[0][0]
         assert "/fundamentals" in url
+
+
+class TestIdeas:
+    """Tests for ideas()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_params(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "AAPL", "ideas": []}))
+
+        await ideas(symbol="AAPL", sort="recent", limit=5)
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["symbol"] == "AAPL"
+        assert params["sort"] == "recent"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_ideas_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"ideas": []}))
+
+        await ideas(symbol="AAPL")
+
+        url = mock_client.get.call_args[0][0]
+        assert "/ideas" in url
+
+
+class TestCalendar:
+    """Tests for calendar()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_params(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"count": 0, "events": []}))
+
+        await calendar(days=14, countries="US,EU", importance=1)
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["days"] == 14
+        assert params["countries"] == "US,EU"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_calendar_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"events": []}))
+
+        await calendar()
+
+        url = mock_client.get.call_args[0][0]
+        assert "/calendar" in url
