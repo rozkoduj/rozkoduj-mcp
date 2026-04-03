@@ -31,6 +31,7 @@ mcp = FastMCP(
         "'movers' for top gainers/losers, 'compare' for multi-symbol comparison, "
         "'multitf' for multi-timeframe analysis."
     ),
+    host="0.0.0.0",
     stateless_http=True,
     json_response=True,
     lifespan=app_lifespan,
