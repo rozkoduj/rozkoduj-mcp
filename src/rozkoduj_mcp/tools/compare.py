@@ -22,7 +22,7 @@ async def compare(
         raise ValueError(msg)
 
     analyses = await asyncio.gather(
-        *(ta_service.get_analysis(sym, "", "", interval) for sym in symbols)
+        *(ta_service.get_analysis(sym, interval) for sym in symbols)
     )
 
     return [
