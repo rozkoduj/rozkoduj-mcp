@@ -31,7 +31,7 @@ async def multitf(
     """
     tfs = timeframes if timeframes else _DEFAULT_TIMEFRAMES
 
-    all_data = await asyncio.gather(*(ta_service.get_analysis(symbol, "", "", tf) for tf in tfs))
+    all_data = await asyncio.gather(*(ta_service.get_analysis(symbol, tf) for tf in tfs))
 
     analyses: list[dict[str, Any]] = []
     directions: list[str] = []
