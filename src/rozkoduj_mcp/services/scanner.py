@@ -49,9 +49,7 @@ async def analyze(
 ) -> dict[str, Any]:
     """Fetch technical analysis for a single symbol."""
     try:
-        resp = await _get_client().post(
-            "/analyze", json={"symbol": symbol, "interval": interval}
-        )
+        resp = await _get_client().post("/analyze", json={"symbol": symbol, "interval": interval})
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         msg = f"Data API error for {symbol}: {exc}"
