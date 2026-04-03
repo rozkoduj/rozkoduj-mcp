@@ -101,3 +101,31 @@ async def fundamentals(symbol: str) -> dict[str, Any]:
         raise RuntimeError(msg) from exc
 
     return resp.json()  # type: ignore[no-any-return]
+
+
+async def ideas(symbol: str, sort: str = "trending", limit: int = 10) -> dict[str, Any]:
+    """Fetch community trading ideas for a symbol."""
+    try:
+        resp = await _get_client().get(
+            "/ideas", params={"symbol": symbol, "sort": sort, "limit": limit}
+        )
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        msg = f"Data API error for ideas {symbol}: {exc}"
+        raise RuntimeError(msg) from exc
+
+    return resp.json()  # type: ignore[no-any-return]
+
+
+async def calendar(days: int = 7, countries: str = "US", importance: int = 0) -> dict[str, Any]:
+    """Fetch economic calendar events."""
+    try:
+        resp = await _get_client().get(
+            "/calendar", params={"days": days, "countries": countries, "importance": importance}
+        )
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        msg = f"Data API error for calendar: {exc}"
+        raise RuntimeError(msg) from exc
+
+    return resp.json()  # type: ignore[no-any-return]
