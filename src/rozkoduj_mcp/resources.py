@@ -88,19 +88,24 @@ _OPERATORS: list[dict[str, str]] = [
 ]
 
 
+_MARKETS_JSON = json.dumps(_MARKETS, indent=2)
+_FIELDS_JSON = json.dumps(_FIELDS, indent=2)
+_OPERATORS_JSON = json.dumps(_OPERATORS, indent=2)
+
+
 @mcp.resource("rozkoduj://markets", name="Available markets", mime_type="application/json")
 def get_markets() -> str:
     """List of markets available for screening with the scan tool."""
-    return json.dumps(_MARKETS, indent=2)
+    return _MARKETS_JSON
 
 
 @mcp.resource("rozkoduj://fields", name="Screening fields", mime_type="application/json")
 def get_fields() -> str:
     """Popular screening fields for use with scan tool columns and filters."""
-    return json.dumps(_FIELDS, indent=2)
+    return _FIELDS_JSON
 
 
 @mcp.resource("rozkoduj://operators", name="Filter operators", mime_type="application/json")
 def get_operators() -> str:
     """Filter operators for use with scan tool filters."""
-    return json.dumps(_OPERATORS, indent=2)
+    return _OPERATORS_JSON

@@ -4,7 +4,7 @@ import asyncio
 from typing import Any
 
 from rozkoduj_mcp.server import mcp
-from rozkoduj_mcp.services import ta as ta_service
+from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, validate_str
 
 
@@ -23,7 +23,7 @@ async def compare(
     for sym in symbols:
         validate_str(sym, "symbol")
 
-    analyses = await asyncio.gather(*(ta_service.get_analysis(sym, interval) for sym in symbols))
+    analyses = await asyncio.gather(*(scanner.analyze(sym, interval) for sym in symbols))
 
     return [
         {
