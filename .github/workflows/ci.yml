@@ -46,4 +46,4 @@ jobs:
           region: europe-west1
           source: .
           env_vars: MCP_TRANSPORT=streamable-http
-          flags: --concurrency=20 --max-instances=3 --min-instances=0
+          flags: --concurrency=50 --max-instances=3 --min-instances=0
