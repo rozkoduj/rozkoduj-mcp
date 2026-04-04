@@ -170,7 +170,7 @@ Context data the AI can read to build better queries:
 
 | Resource | Description |
 | -------- | ----------- |
-| `rozkoduj://markets` | Available markets (america, crypto, forex, poland, ...) |
+| `rozkoduj://markets` | Available markets with IDs for the scan tool |
 | `rozkoduj://fields` | Popular screening fields with categories (technical, fundamental, performance) |
 | `rozkoduj://operators` | Filter operators for scan (greater, less, in_range, crosses_above, ...) |
 
