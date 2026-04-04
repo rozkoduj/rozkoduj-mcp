@@ -7,13 +7,13 @@
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Decode the markets with screening, analysis, and scoring across stocks, crypto, and forex. 3000+ fields, 78 markets, zero setup.
+Decode the markets with screening, analysis, and scoring across stocks, crypto, and forex. Zero setup.
 
 ## Why Rozkoduj?
 
 - **One URL, zero config** - no cloning, no local dependencies. Add the URL and go.
-- **78 markets** - US, EU, Asia, crypto, forex. Not just S&P 500.
-- **3000+ screening fields** - any indicator, fundamental, or performance metric as a filter.
+- **Global coverage** - US, EU, Asia, crypto, forex. Not just S&P 500.
+- **Deep screening** - any indicator, fundamental, or performance metric as a filter.
 - **TA + fundamentals combined** - smart screens that mix technical signals with valuation data.
 - **Market regime detection** - CNN Fear & Greed, crypto Fear & Greed, VIX in one call.
 - **Per-ticker attention signal** - news headlines + Wikipedia pageview spike detection globally.
@@ -142,7 +142,7 @@ For clients that support remote MCP:
 
 | Tool | Description |
 | ---- | ----------- |
-| `scan` | Screen markets with 3000+ fields, 26 filter operators, 78 markets. Filter by any indicator, volume, market cap, and more. |
+| `scan` | Screen global markets by any indicator, fundamental, volume, market cap, and more. Flexible filtering and sorting. |
 | `smart_screen` | Pre-built intelligent screens. Presets: `unusual_volume`, `oversold_bounce`, `breakout`, `momentum`, `dividend`, `value`, `growth`. Value and growth combine TA with fundamental data. |
 | `movers` | Top gainers and losers across any market. Supports crypto, stocks, forex. |
 
@@ -170,7 +170,7 @@ Context data the AI can read to build better queries:
 
 | Resource | Description |
 | -------- | ----------- |
-| `rozkoduj://markets` | List of 78 available markets (america, crypto, forex, poland, ...) |
+| `rozkoduj://markets` | Available markets (america, crypto, forex, poland, ...) |
 | `rozkoduj://fields` | Popular screening fields with categories (technical, fundamental, performance) |
 | `rozkoduj://operators` | Filter operators for scan (greater, less, in_range, crosses_above, ...) |
 

@@ -1,4 +1,4 @@
-"""MCP tool: market screening with 3000+ fields."""
+"""MCP tool: market screening."""
 
 from typing import Any, Literal
 
@@ -16,7 +16,7 @@ async def scan(
     order: Literal["asc", "desc"] = "desc",
     limit: int = 20,
 ) -> list[dict[str, Any]]:
-    """Screen markets with 3000+ fields.
+    """Screen global markets by any indicator, fundamental, or metric.
 
     Returns matching symbols with the requested columns.
     """
