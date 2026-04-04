@@ -7,7 +7,19 @@
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Real-time market intelligence for AI assistants. Screen 3000+ fields across stocks, crypto, forex. Technical analysis, holistic scoring, fundamental data, community sentiment, economic calendar, and smart preset screens. No API key needed.
+Real-time market intelligence for AI assistants. Screen 3000+ fields across stocks, crypto, forex. Technical analysis, holistic scoring, fundamental data, attention signals, economic calendar, and smart preset screens.
+
+**Zero setup. No API key. Just a URL.**
+
+## Why Rozkoduj?
+
+- **One URL, zero config** - no cloning, no API keys, no local dependencies. Add the URL and go.
+- **78 markets** - US, EU, Asia, crypto, forex. Not just S&P 500.
+- **3000+ screening fields** - any indicator, fundamental, or performance metric as a filter.
+- **TA + fundamentals combined** - smart screens that mix technical signals with valuation data.
+- **Market regime detection** - CNN Fear & Greed, crypto Fear & Greed, VIX in one call.
+- **Per-ticker attention signal** - news headlines + Wikipedia pageview spike detection globally.
+- **MCP Resources & Prompts** - proper spec-compliant context and workflow templates.
 
 ## Installation
 
@@ -133,7 +145,7 @@ For clients that support remote MCP:
 | Tool | Description |
 | ---- | ----------- |
 | `scan` | Screen markets with 3000+ fields, 26 filter operators, 78 markets. Filter by any indicator, volume, market cap, and more. |
-| `smart_screen` | Pre-built intelligent screens. Presets: `unusual_volume`, `oversold_bounce`, `breakout`, `momentum`, `dividend`. |
+| `smart_screen` | Pre-built intelligent screens. Presets: `unusual_volume`, `oversold_bounce`, `breakout`, `momentum`, `dividend`, `value`, `growth`. Value and growth combine TA with fundamental data. |
 | `movers` | Top gainers and losers across any market. Supports crypto, stocks, forex. |
 
 ### Analysis
@@ -151,23 +163,59 @@ For clients that support remote MCP:
 | Tool | Description |
 | ---- | ----------- |
 | `market_pulse` | Market regime detection: CNN Fear & Greed (US stocks, 7 sub-indicators), Alternative.me Fear & Greed (crypto), and VIX. Returns RISK-ON, RISK-OFF, or NEUTRAL verdict. |
-| `buzz` | Per-ticker attention signal using Wikipedia pageview trends. Detects spikes in public interest. Works globally — any company with a Wikipedia article. |
+| `buzz` | Per-ticker attention signal using Google News headline count and Wikipedia pageview trends. Detects spikes in public interest. Works globally in any language. |
 | `calendar` | Economic calendar with upcoming macro events. Filter by days ahead, countries, and importance level. Shows actual vs forecast vs previous values. |
+
+### Resources
+
+Context data the AI can read to build better queries:
+
+| Resource | Description |
+| -------- | ----------- |
+| `rozkoduj://markets` | List of 78 available markets (america, crypto, forex, poland, ...) |
+| `rozkoduj://fields` | Popular screening fields with categories (technical, fundamental, performance) |
+| `rozkoduj://operators` | Filter operators for scan (greater, less, in_range, crosses_above, ...) |
+
+### Prompts
+
+Pre-built workflows you can trigger as slash commands:
+
+| Prompt | Description |
+| ------ | ----------- |
+| `morning_briefing` | Daily overview: market regime, top movers, economic calendar |
+| `deep_dive(symbol)` | Full analysis: score + technicals + fundamentals + buzz + multi-timeframe |
+| `find_opportunities(market)` | Scan for opportunities across multiple smart screens |
 
 ## Example Prompts
 
+**Quick analysis:**
 ```
 Score AAPL - should I buy?
 What's the Piotroski F-Score for NVDA? Show me analyst price targets.
+Multi-timeframe analysis for ETHUSDT - is it aligned bullish?
+Compare AAPL, MSFT, GOOGL technical indicators.
+```
+
+**Market overview:**
+```
 What's the current market regime? Risk-on or risk-off?
+What economic events are happening this week?
+Check the buzz around CD Projekt (wiki_article: CD_Projekt).
+```
+
+**Smart screens:**
+```
 Find unusual volume stocks in the US market right now.
 Show me oversold bounce candidates in crypto.
-Check the buzz around CD Projekt (wiki_article: CD_Projekt).
-What economic events are happening this week?
-Compare AAPL, MSFT, GOOGL technical indicators.
-Multi-timeframe analysis for ETHUSDT - is it aligned bullish?
-Screen US stocks with market cap above 10B sorted by change.
+Find value stocks - low P/E with high Piotroski score.
+Screen for growth stocks with strong earnings and momentum.
 Show me high-dividend stocks with sustainable payout ratios.
+```
+
+**Custom screening:**
+```
+Screen US stocks with market cap above 10B sorted by change.
+Find crypto with RSI below 30 and MACD crossing above signal.
 ```
 
 ## Data
