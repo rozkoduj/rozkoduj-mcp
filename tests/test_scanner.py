@@ -42,11 +42,7 @@ class TestScanMarket:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_payload(self, mock_client: AsyncMock) -> None:
-        mock_client.post = AsyncMock(
-            return_value=_mock_response(
-                {"as_of": "2026-04-04T12:00:00", "results": [{"name": "BTC"}]}
-            )
-        )
+        mock_client.post = AsyncMock(return_value=_mock_response([{"name": "BTC"}]))
 
         result = await scan_market(market="crypto", sort_by="volume", limit=10)
 
@@ -58,9 +54,7 @@ class TestScanMarket:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_calls_scan_endpoint(self, mock_client: AsyncMock) -> None:
-        mock_client.post = AsyncMock(
-            return_value=_mock_response({"as_of": "2026-04-04", "results": []})
-        )
+        mock_client.post = AsyncMock(return_value=_mock_response([]))
 
         await scan_market(market="america")
 

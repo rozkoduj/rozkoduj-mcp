@@ -40,8 +40,7 @@ async def scan_market(
         msg = f"Data API error for market {market!r}: {exc}"
         raise RuntimeError(msg) from exc
 
-    data: Any = resp.json()
-    return data.get("results", data) if isinstance(data, dict) else data
+    return resp.json()  # type: ignore[no-any-return]
 
 
 async def analyze(
