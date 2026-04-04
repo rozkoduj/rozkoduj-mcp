@@ -4,9 +4,11 @@ from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
 
-Preset = Literal["unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend"]
+Preset = Literal[
+    "unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend", "value", "growth"
+]
 
 _PRESETS: dict[str, dict[str, Any]] = {
     "unusual_volume": {
@@ -82,10 +84,50 @@ _PRESETS: dict[str, dict[str, Any]] = {
         ],
         "sort_by": "dividend_yield_recent",
     },
+    "value": {
+        "filters": [
+            {"left": "price_earnings_ttm", "operation": "in_range", "right": [0, 15]},
+            {"left": "piotroski_f_score_ttm", "operation": "greater", "right": 6},
+            {"left": "RSI", "operation": "less", "right": 70},
+        ],
+        "columns": [
+            "name",
+            "close",
+            "change",
+            "price_earnings_ttm",
+            "piotroski_f_score_ttm",
+            "price_book_fq",
+            "RSI",
+            "Recommend.All",
+        ],
+        "sort_by": "piotroski_f_score_ttm",
+    },
+    "growth": {
+        "filters": [
+            {
+                "left": "earnings_per_share_diluted_yoy_growth_ttm",
+                "operation": "greater",
+                "right": 20,
+            },
+            {"left": "EMA20", "operation": "greater", "right": "EMA50"},
+            {"left": "relative_volume_10d_calc", "operation": "greater", "right": 1.2},
+        ],
+        "columns": [
+            "name",
+            "close",
+            "change",
+            "earnings_per_share_diluted_yoy_growth_ttm",
+            "Perf.1M",
+            "relative_volume_10d_calc",
+            "EMA20",
+            "EMA50",
+        ],
+        "sort_by": "earnings_per_share_diluted_yoy_growth_ttm",
+    },
 }
 
 
-@mcp.tool()
+@mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def smart_screen(
     preset: Preset,
     market: str = "america",
@@ -93,7 +135,8 @@ async def smart_screen(
 ) -> list[dict[str, Any]]:
     """Run a pre-built intelligent screen.
 
-    Presets: unusual_volume, oversold_bounce, breakout, momentum, dividend.
+    Presets: unusual_volume, oversold_bounce, breakout, momentum, dividend, value, growth.
+    Value and growth combine fundamental data with technical analysis.
     """
     validate_str(market, "market")
     limit = max(1, min(limit, 50))

@@ -4,10 +4,10 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
 
 
-@mcp.tool()
+@mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def buzz(
     query: str,
     lang: str = "en",

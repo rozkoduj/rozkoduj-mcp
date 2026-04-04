@@ -6,7 +6,7 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import ta as ta_service
-from rozkoduj_mcp.tools import Interval, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, validate_str
 
 _DEFAULT_TIMEFRAMES: list[str] = ["15m", "1h", "4h", "1d", "1W"]
 
@@ -20,7 +20,7 @@ def _classify(recommendation: str) -> str:
     return "NEUTRAL"
 
 
-@mcp.tool()
+@mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def multitf(
     symbol: str,
     timeframes: list[Interval] | None = None,
