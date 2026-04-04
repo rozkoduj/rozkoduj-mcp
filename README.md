@@ -7,7 +7,7 @@
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-AI-powered screening, analysis, and scoring across stocks, crypto, and forex. 3000+ fields, 78 markets, zero config.
+Decode the markets with real-time screening, analysis, and scoring across stocks, crypto, and forex. 3000+ fields, 78 markets, zero config.
 
 **Zero setup. No API key. Just a URL.**
 
