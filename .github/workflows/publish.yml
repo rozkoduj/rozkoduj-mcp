@@ -13,5 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+      - run: uv python install 3.14
+      - name: Set version from release tag
+        run: uv version "${GITHUB_REF_NAME#v}"
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@76f52bc884231f62b54a0f1e60d2db8d8b30435f # v1.12.4
