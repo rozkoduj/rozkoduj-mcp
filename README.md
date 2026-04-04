@@ -5,7 +5,7 @@
 [![CI](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/rozkoduj/rozkoduj-mcp/actions)
 [![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp?style=flat-square)](https://pypi.org/project/rozkoduj-mcp/)
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
-[![Coverage: 97%](https://img.shields.io/badge/coverage-97%25-brightgreen?style=flat-square)](https://github.com/rozkoduj/rozkoduj-mcp/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex.
