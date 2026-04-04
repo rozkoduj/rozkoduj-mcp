@@ -61,6 +61,17 @@ class TestMultitf:
         assert result["alignment"]["score"] == "2/2"
 
     @pytest.mark.anyio
+    async def test_rejects_too_many_timeframes(self) -> None:
+        tfs = ["1d"] * 11
+        with pytest.raises(ValueError, match="timeframes"):
+            await multitf("BTC", timeframes=tfs)  # type: ignore[arg-type]
+
+    @pytest.mark.anyio
+    async def test_rejects_long_symbol(self) -> None:
+        with pytest.raises(ValueError, match="symbol"):
+            await multitf("x" * 101)
+
+    @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.multitf.ta_service")
     async def test_strong_buy_maps_to_buy(self, mock_ta: MagicMock) -> None:
         mock_ta.get_analysis = AsyncMock(return_value=mock_analysis("STRONG_BUY"))

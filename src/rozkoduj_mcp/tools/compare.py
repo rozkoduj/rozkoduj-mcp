@@ -5,7 +5,7 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import ta as ta_service
-from rozkoduj_mcp.tools import Interval
+from rozkoduj_mcp.tools import Interval, validate_str
 
 
 @mcp.tool()
@@ -20,6 +20,8 @@ async def compare(
     if len(symbols) > 10:
         msg = "symbols must contain at most 10 entries"
         raise ValueError(msg)
+    for sym in symbols:
+        validate_str(sym, "symbol")
 
     analyses = await asyncio.gather(*(ta_service.get_analysis(sym, interval) for sym in symbols))
 
