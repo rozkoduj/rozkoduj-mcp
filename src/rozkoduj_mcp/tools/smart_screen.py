@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
+from rozkoduj_mcp.tools import validate_str
 
 Preset = Literal["unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend"]
 
@@ -94,6 +95,7 @@ async def smart_screen(
 
     Presets: unusual_volume, oversold_bounce, breakout, momentum, dividend.
     """
+    validate_str(market, "market")
     limit = max(1, min(limit, 50))
     config = _PRESETS[preset]
 
