@@ -2,9 +2,14 @@
 
 from typing import Literal
 
+from mcp.types import ToolAnnotations
+
 Interval = Literal["1m", "5m", "15m", "30m", "1h", "2h", "4h", "1d", "1W", "1M"]
 
 MAX_STR_LEN = 100
+
+# All rozkoduj tools are read-only queries against live market data.
+TOOL_ANNOTATIONS = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
 
 
 def validate_str(value: str, name: str) -> str:

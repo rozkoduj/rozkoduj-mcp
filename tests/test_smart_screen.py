@@ -37,10 +37,42 @@ class TestSmartScreen:
     async def test_all_presets_valid(self, mock_scanner: AsyncMock) -> None:
         mock_scanner.scan_market = AsyncMock(return_value=[])
 
-        for preset in ("unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend"):
+        presets = (
+            "unusual_volume",
+            "oversold_bounce",
+            "breakout",
+            "momentum",
+            "dividend",
+            "value",
+            "growth",
+        )
+        for preset in presets:
             await smart_screen(preset)  # type: ignore[arg-type]
 
-        assert mock_scanner.scan_market.call_count == 5
+        assert mock_scanner.scan_market.call_count == len(presets)
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.tools.smart_screen.scanner")
+    async def test_value_preset_uses_fundamentals(self, mock_scanner: AsyncMock) -> None:
+        mock_scanner.scan_market = AsyncMock(return_value=[])
+
+        await smart_screen("value")
+
+        call_kwargs = mock_scanner.scan_market.call_args[1]
+        assert any(f["left"] == "price_earnings_ttm" for f in call_kwargs["filters"])
+        assert any(f["left"] == "piotroski_f_score_ttm" for f in call_kwargs["filters"])
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.tools.smart_screen.scanner")
+    async def test_growth_preset_uses_fundamentals(self, mock_scanner: AsyncMock) -> None:
+        mock_scanner.scan_market = AsyncMock(return_value=[])
+
+        await smart_screen("growth")
+
+        call_kwargs = mock_scanner.scan_market.call_args[1]
+        filter_fields = {f["left"] for f in call_kwargs["filters"]}
+        assert "earnings_per_share_diluted_yoy_growth_ttm" in filter_fields
+        assert "EMA20" in filter_fields
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.smart_screen.scanner")

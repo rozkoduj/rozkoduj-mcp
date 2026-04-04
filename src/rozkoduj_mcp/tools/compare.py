@@ -5,10 +5,10 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import ta as ta_service
-from rozkoduj_mcp.tools import Interval, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, validate_str
 
 
-@mcp.tool()
+@mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def compare(
     symbols: list[str],
     interval: Interval = "1d",
