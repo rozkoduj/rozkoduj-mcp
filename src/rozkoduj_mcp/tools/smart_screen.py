@@ -10,19 +10,6 @@ Preset = Literal[
     "unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend", "value", "growth"
 ]
 
-_CRYPTO_MARKETS: frozenset[str] = frozenset({"crypto", "forex"})
-
-# Minimum quality filters added to every preset to exclude junk.
-_STOCK_QUALITY: list[dict[str, Any]] = [
-    {"left": "volume", "operation": "greater", "right": 100_000},
-    {"left": "close", "operation": "greater", "right": 1},
-    {"left": "is_primary", "operation": "equal", "right": True},
-]
-_CRYPTO_QUALITY: list[dict[str, Any]] = [
-    {"left": "volume", "operation": "greater", "right": 1_000_000},
-    {"left": "close", "operation": "greater", "right": 0.0001},
-]
-
 _PRESETS: dict[str, dict[str, Any]] = {
     "unusual_volume": {
         "filters": [
@@ -84,8 +71,8 @@ _PRESETS: dict[str, dict[str, Any]] = {
     },
     "dividend": {
         "filters": [
-            {"left": "dividend_yield_recent", "operation": "in_range", "right": [0.03, 0.15]},
-            {"left": "dividend_payout_ratio_ttm", "operation": "in_range", "right": [0.01, 0.6]},
+            {"left": "dividend_yield_recent", "operation": "in_range", "right": [0.03, 0.20]},
+            {"left": "dividend_payout_ratio_ttm", "operation": "in_range", "right": [0.01, 0.80]},
         ],
         "columns": [
             "name",
@@ -155,12 +142,9 @@ async def smart_screen(
     limit = max(1, min(limit, 50))
     config = _PRESETS[preset]
 
-    quality = _CRYPTO_QUALITY if market in _CRYPTO_MARKETS else _STOCK_QUALITY
-    filters = [*quality, *config["filters"]]
-
     return await scanner.scan_market(
         market=market,
-        filters=filters,
+        filters=config["filters"],
         columns=config["columns"],
         sort_by=config.get("sort_by", "volume"),
         order=config.get("order", "desc"),
