@@ -198,12 +198,12 @@ Compare AAPL, MSFT, GOOGL technical indicators.
 ```
 What's the current market regime? Risk-on or risk-off?
 What economic events are happening this week?
-Check the buzz around CD Projekt (wiki_article: CD_Projekt).
+Is there any buzz around Tesla right now?
 ```
 
 **Smart screens:**
 ```
-Find unusual volume stocks in the US market right now.
+Find unusual volume stocks in the US market.
 Show me oversold bounce candidates in crypto.
 Find value stocks - low P/E with high Piotroski score.
 Screen for growth stocks with strong earnings and momentum.
@@ -213,7 +213,7 @@ Show me high-dividend stocks with sustainable payout ratios.
 **Custom screening:**
 ```
 Screen US stocks with market cap above 10B sorted by change.
-Find crypto with RSI below 30 and MACD crossing above signal.
+Find crypto with RSI below 30.
 ```
 
 ## Data
