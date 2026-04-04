@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability, please report it responsibly.
 
-**Email:** security@rozkoduj.com
+**Email:** contact@rozkoduj.com
 
 Please do NOT open a public GitHub issue for security vulnerabilities.
 
