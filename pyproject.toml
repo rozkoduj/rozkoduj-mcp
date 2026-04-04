@@ -1,7 +1,7 @@
 [project]
 name = "rozkoduj-mcp"
 version = "2026.4.4"
-description = "MCP server for market screening, analysis, and scoring - stocks, crypto, forex"
+description = "Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.14"
