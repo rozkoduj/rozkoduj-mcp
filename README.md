@@ -7,7 +7,7 @@
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Decode the markets with screening, analysis, and scoring across stocks, crypto, and forex. Zero setup.
+Market screening, analysis, and scoring for your AI assistant. Stocks, crypto, and forex.
 
 ## Why Rozkoduj?
 
