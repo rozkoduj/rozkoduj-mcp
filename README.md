@@ -193,4 +193,4 @@ MCP_TRANSPORT=streamable-http PORT=8080 uv run rozkoduj-mcp
 
 ## License
 
-MIT — [rozkoduj](https://github.com/rozkoduj) · [rozkoduj.com](https://rozkoduj.com)
+MIT - [rozkoduj.com](https://rozkoduj.com)
