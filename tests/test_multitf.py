@@ -12,19 +12,19 @@ class TestMultitf:
     """Tests for the multitf MCP tool."""
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.multitf.ta_service")
-    async def test_default_timeframes(self, mock_ta: MagicMock) -> None:
-        mock_ta.get_analysis = AsyncMock(return_value=mock_analysis("BUY"))
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_default_timeframes(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(return_value=mock_analysis("BUY"))
 
         result = await multitf("BTCUSDT")
 
         assert len(result["analysis"]) == 5
-        assert mock_ta.get_analysis.call_count == 5
+        assert mock_scanner.analyze.call_count == 5
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.multitf.ta_service")
-    async def test_all_buy_alignment(self, mock_ta: MagicMock) -> None:
-        mock_ta.get_analysis = AsyncMock(return_value=mock_analysis("BUY"))
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_all_buy_alignment(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(return_value=mock_analysis("BUY"))
 
         result = await multitf("BTCUSDT")
 
@@ -32,9 +32,9 @@ class TestMultitf:
         assert result["alignment"]["score"] == "5/5"
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.multitf.ta_service")
-    async def test_mixed_signals(self, mock_ta: MagicMock) -> None:
-        mock_ta.get_analysis = AsyncMock(
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_mixed_signals(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(
             side_effect=[
                 mock_analysis("BUY"),
                 mock_analysis("STRONG_BUY"),
@@ -50,9 +50,9 @@ class TestMultitf:
         assert result["alignment"]["score"] == "3/5"
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.multitf.ta_service")
-    async def test_custom_timeframes(self, mock_ta: MagicMock) -> None:
-        mock_ta.get_analysis = AsyncMock(return_value=mock_analysis("SELL"))
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_custom_timeframes(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(return_value=mock_analysis("SELL"))
 
         result = await multitf("AAPL", timeframes=["1h", "1d"])
 
@@ -72,9 +72,9 @@ class TestMultitf:
             await multitf("x" * 101)
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.multitf.ta_service")
-    async def test_strong_buy_maps_to_buy(self, mock_ta: MagicMock) -> None:
-        mock_ta.get_analysis = AsyncMock(return_value=mock_analysis("STRONG_BUY"))
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_strong_buy_maps_to_buy(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(return_value=mock_analysis("STRONG_BUY"))
 
         result = await multitf("BTCUSDT", timeframes=["1d"])
 

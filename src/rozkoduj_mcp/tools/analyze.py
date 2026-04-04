@@ -3,7 +3,7 @@
 from typing import Any
 
 from rozkoduj_mcp.server import mcp
-from rozkoduj_mcp.services import ta as ta_service
+from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, validate_str
 
 
@@ -17,4 +17,4 @@ async def analyze(
     Auto-detects exchange. Returns composite rating plus detailed indicators.
     """
     validate_str(symbol, "symbol")
-    return await ta_service.get_analysis(symbol, interval)
+    return await scanner.analyze(symbol, interval)
