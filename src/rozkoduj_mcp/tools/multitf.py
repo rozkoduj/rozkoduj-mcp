@@ -6,7 +6,7 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import ta as ta_service
-from rozkoduj_mcp.tools import Interval
+from rozkoduj_mcp.tools import Interval, validate_str
 
 _DEFAULT_TIMEFRAMES: list[str] = ["15m", "1h", "4h", "1d", "1W"]
 
@@ -29,7 +29,11 @@ async def multitf(
 
     Default timeframes: 15m, 1h, 4h, 1d, 1W.
     """
+    validate_str(symbol, "symbol")
     tfs = timeframes if timeframes else _DEFAULT_TIMEFRAMES
+    if len(tfs) > 10:
+        msg = "timeframes must contain at most 10 entries"
+        raise ValueError(msg)
 
     all_data = await asyncio.gather(*(ta_service.get_analysis(symbol, tf) for tf in tfs))
 

@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
+from rozkoduj_mcp.tools import validate_str
 
 
 @mcp.tool()
@@ -19,7 +20,15 @@ async def scan(
 
     Returns matching symbols with the requested columns.
     """
+    validate_str(market, "market")
+    validate_str(sort_by, "sort_by")
     limit = max(1, min(limit, 100))
+    if filters and len(filters) > 20:
+        msg = "filters must contain at most 20 entries"
+        raise ValueError(msg)
+    if columns and len(columns) > 50:
+        msg = "columns must contain at most 50 entries"
+        raise ValueError(msg)
 
     return await scanner.scan_market(
         market=market,

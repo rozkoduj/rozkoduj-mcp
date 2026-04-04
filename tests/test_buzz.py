@@ -40,6 +40,11 @@ class TestBuzz:
         )
 
     @pytest.mark.anyio
+    async def test_rejects_long_query(self) -> None:
+        with pytest.raises(ValueError, match="query"):
+            await buzz("x" * 101)
+
+    @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.buzz.scanner")
     async def test_has_news_and_wiki(self, mock_scanner: AsyncMock) -> None:
         mock_scanner.buzz = AsyncMock(return_value=_mock_result())
