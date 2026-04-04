@@ -7,13 +7,11 @@
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Decode the markets with real-time screening, analysis, and scoring across stocks, crypto, and forex. 3000+ fields, 78 markets, zero config.
-
-**Zero setup. No API key. Just a URL.**
+Decode the markets with screening, analysis, and scoring across stocks, crypto, and forex. 3000+ fields, 78 markets, zero setup.
 
 ## Why Rozkoduj?
 
-- **One URL, zero config** - no cloning, no API keys, no local dependencies. Add the URL and go.
+- **One URL, zero config** - no cloning, no local dependencies. Add the URL and go.
 - **78 markets** - US, EU, Asia, crypto, forex. Not just S&P 500.
 - **3000+ screening fields** - any indicator, fundamental, or performance metric as a filter.
 - **TA + fundamentals combined** - smart screens that mix technical signals with valuation data.
@@ -29,7 +27,7 @@ Connect to the hosted MCP server:
 https://mcp.rozkoduj.com/mcp
 ```
 
-No API key required. Works immediately.
+Works immediately with any MCP client.
 
 <details>
 <summary><b>Cursor</b></summary>
@@ -220,7 +218,7 @@ Find crypto with RSI below 30 and MACD crossing above signal.
 
 ## Data
 
-Real-time market data via [rozkoduj](https://rozkoduj.com) data API. No API key. No paid feeds.
+Market data via [rozkoduj](https://rozkoduj.com) data API.
 
 Auto-detects exchanges: `BTCUSDT` resolves to Binance, `AAPL` to NASDAQ, `EURUSD` to Forex.
 
