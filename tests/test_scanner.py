@@ -96,6 +96,14 @@ class TestAnalyze:
         url = mock_client.post.call_args[0][0]
         assert "/analyze" in url
 
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await analyze(symbol="AAPL")
+
 
 class TestMovers:
     """Tests for movers()."""
@@ -187,6 +195,14 @@ class TestFundamentals:
         url = mock_client.post.call_args[0][0]
         assert "/fundamentals" in url
 
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await fundamentals(symbol="AAPL")
+
 
 class TestBuzz:
     """Tests for buzz()."""
@@ -215,6 +231,14 @@ class TestBuzz:
         url = mock_client.get.call_args[0][0]
         assert "/buzz" in url
 
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await buzz(query="AAPL")
+
 
 class TestMarketPulse:
     """Tests for market_pulse()."""
@@ -231,6 +255,14 @@ class TestMarketPulse:
         url = mock_client.get.call_args[0][0]
         assert "/market-pulse" in url
         assert result["verdict"] == "RISK-OFF"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await market_pulse()
 
 
 class TestCalendar:
@@ -256,3 +288,11 @@ class TestCalendar:
 
         url = mock_client.get.call_args[0][0]
         assert "/calendar" in url
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await calendar()
