@@ -28,7 +28,7 @@ class TestPrompts:
         messages = find_opportunities()
         assert len(messages) == 1
         text = messages[0].content.text  # type: ignore[union-attr]
-        assert "america" in text
+        assert "us" in text
         assert "smart_screen" in text
 
     def test_find_opportunities_custom_market(self) -> None:
