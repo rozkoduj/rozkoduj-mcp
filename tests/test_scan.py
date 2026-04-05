@@ -44,10 +44,10 @@ class TestScan:
             {"left": "volume", "operation": "greater", "right": 500_000}
         ]
 
-        result = await scan(market="america", filters=filters, sort_by="change", order="asc")
+        result = await scan(market="us", filters=filters, sort_by="change", order="asc")
 
         mock_scanner.scan_market.assert_called_once_with(
-            market="america",
+            market="us",
             filters=filters,
             columns=None,
             sort_by="change",

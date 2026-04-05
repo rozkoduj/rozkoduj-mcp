@@ -20,8 +20,8 @@ def mock_analysis(
         "moving_averages": {"recommendation": "STRONG_BUY"},
         "indicators": {
             "RSI": rsi,
-            "MACD.macd": macd,
-            "MACD.signal": macd_signal,
+            "macd": macd,
+            "macd_signal": macd_signal,
             "ADX": adx,
         },
     }

@@ -15,7 +15,7 @@ def morning_briefing() -> list[Message]:
                 "Give me a morning market briefing. Use these tools in order:\n"
                 "1. market_pulse - current regime (risk-on/off)\n"
                 "2. movers(market='crypto', direction='both', limit=5) - top crypto movers\n"
-                "3. movers(market='america', direction='both', limit=5) - top US stock movers\n"
+                "3. movers(market='us', direction='both', limit=5) - top US stock movers\n"
                 "4. calendar(days=1, importance=1) - high-importance events today\n\n"
                 "Summarize the overall market tone and highlight anything unusual."
             ),
@@ -45,7 +45,7 @@ def deep_dive(symbol: str) -> list[Message]:
 
 
 @mcp.prompt()
-def find_opportunities(market: str = "america") -> list[Message]:
+def find_opportunities(market: str = "us") -> list[Message]:
     """Scan for trading opportunities using smart screens and buzz."""
     return [
         Message(

@@ -11,7 +11,7 @@ class TestResources:
         assert isinstance(data, list)
         assert len(data) > 10
         ids = {m["id"] for m in data}
-        assert "america" in ids
+        assert "us" in ids
         assert "crypto" in ids
         assert "forex" in ids
         assert "poland" in ids
@@ -29,7 +29,7 @@ class TestResources:
         ids = {f["id"] for f in data}
         assert "RSI" in ids
         assert "close" in ids
-        assert "price_earnings_ttm" in ids
+        assert "pe_ttm" in ids
 
     def test_fields_have_required_keys(self) -> None:
         data = json.loads(get_fields())
