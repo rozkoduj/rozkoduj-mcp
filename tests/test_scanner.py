@@ -56,7 +56,7 @@ class TestScanMarket:
     async def test_calls_scan_endpoint(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(return_value=_mock_response([]))
 
-        await scan_market(market="america")
+        await scan_market(market="us")
 
         url = mock_client.post.call_args[0][0]
         assert "/scan" in url

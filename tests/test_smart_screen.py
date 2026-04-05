@@ -17,8 +17,8 @@ class TestSmartScreen:
 
         assert len(result) == 1
         call_kwargs = mock_scanner.scan_market.call_args[1]
-        assert call_kwargs["market"] == "america"
-        assert any(f["left"] == "relative_volume_10d_calc" for f in call_kwargs["filters"])
+        assert call_kwargs["market"] == "us"
+        assert any(f["left"] == "relative_volume" for f in call_kwargs["filters"])
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.smart_screen.scanner")
@@ -59,8 +59,8 @@ class TestSmartScreen:
         await smart_screen("value")
 
         call_kwargs = mock_scanner.scan_market.call_args[1]
-        assert any(f["left"] == "price_earnings_ttm" for f in call_kwargs["filters"])
-        assert any(f["left"] == "piotroski_f_score_ttm" for f in call_kwargs["filters"])
+        assert any(f["left"] == "pe_ttm" for f in call_kwargs["filters"])
+        assert any(f["left"] == "piotroski" for f in call_kwargs["filters"])
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.smart_screen.scanner")
@@ -71,7 +71,7 @@ class TestSmartScreen:
 
         call_kwargs = mock_scanner.scan_market.call_args[1]
         filter_fields = {f["left"] for f in call_kwargs["filters"]}
-        assert "earnings_per_share_diluted_yoy_growth_ttm" in filter_fields
+        assert "eps_growth_yoy" in filter_fields
         assert "EMA20" in filter_fields
 
     @pytest.mark.anyio
