@@ -51,7 +51,7 @@ async def multitf(
                 "recommendation": rec,
                 "direction": direction,
                 "rsi": data.get("indicators", {}).get("RSI"),
-                "macd": data.get("indicators", {}).get("MACD.macd"),
+                "macd": data.get("indicators", {}).get("macd"),
             }
         )
 
