@@ -16,8 +16,8 @@ Decode the markets with your AI assistant. Screening, analysis, and scoring acro
 - **Global coverage** - US, EU, Asia, crypto, forex. Not just S&P 500.
 - **Deep screening** - any indicator, fundamental, or performance metric as a filter.
 - **TA + fundamentals combined** - smart screens that mix technical signals with valuation data.
-- **Market regime detection** - CNN Fear & Greed, crypto Fear & Greed, VIX in one call.
-- **Per-ticker attention signal** - news headlines + Wikipedia pageview spike detection globally.
+- **Market regime detection** - stock and crypto fear & greed indices, VIX in one call.
+- **Per-ticker attention signal** - news coverage + public interest spike detection globally.
 - **MCP Resources & Prompts** - proper spec-compliant context and workflow templates.
 
 ## Installation
@@ -163,8 +163,8 @@ For clients that support remote MCP:
 | ---- | ----------- |
 | `digest` | Market anomaly radar. Scans global markets and surfaces notable anomalies (volume spikes, RSI extremes, big moves, 52-week highs/lows) ranked by 1-5 star surprise score with fundamental context. Filter by market. |
 | `decode` | Full 3-dimensional analysis: technical (daily, 4h, weekly), fundamental (valuation, analysts, earnings), and news sentiment. Each dimension scored 0-100. |
-| `market_pulse` | Market regime detection: CNN Fear & Greed (US stocks, 7 sub-indicators), Alternative.me Fear & Greed (crypto), and VIX. Returns RISK-ON, RISK-OFF, or NEUTRAL verdict. |
-| `buzz` | Per-ticker attention signal using Google News headline count and Wikipedia pageview trends. Detects spikes in public interest. Works globally in any language. |
+| `market_pulse` | Market regime detection: stock fear & greed (US, 7 sub-indicators), crypto fear & greed, and VIX. Returns RISK-ON, RISK-OFF, or NEUTRAL verdict. |
+| `buzz` | Per-ticker attention signal using news headline count and public interest trends. Detects spikes in attention. Works globally in any language. |
 | `calendar` | Economic calendar with upcoming macro events. Filter by days ahead, countries, and importance level. Shows actual vs forecast vs previous values. |
 
 ### Resources
