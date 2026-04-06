@@ -11,6 +11,8 @@ from rozkoduj_mcp.services.scanner import (
     analyze,
     buzz,
     calendar,
+    decode,
+    digest,
     fundamentals,
     market_pulse,
     movers,
@@ -296,3 +298,125 @@ class TestCalendar:
 
         with pytest.raises(RuntimeError, match="Data API error"):
             await calendar()
+
+
+class TestDigestScanner:
+    """Tests for scanner.digest()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_default_params(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"gems": [], "scope": "global"})
+        )
+
+        result = await digest()
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["limit"] == 20
+        assert "market" not in params
+        assert result["scope"] == "global"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_with_market(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"gems": [], "scope": "crypto"})
+        )
+
+        result = await digest(market="crypto")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["market"] == "crypto"
+        assert result["scope"] == "crypto"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_digest_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"gems": []}))
+
+        await digest()
+
+        url = mock_client.get.call_args[0][0]
+        assert "/digest" in url
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await digest()
+
+
+class TestDecodeScanner:
+    """Tests for scanner.decode()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_default_params(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"symbol": "AAPL", "technical": {}})
+        )
+
+        result = await decode(symbol="AAPL")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["symbol"] == "AAPL"
+        assert "query" not in params
+        assert "lang" not in params
+        assert result["symbol"] == "AAPL"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_with_query(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"symbol": "SHL.DE"})
+        )
+
+        await decode(symbol="SHL.DE", query="Siemens Healthineers")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["query"] == "Siemens Healthineers"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_with_non_en_lang(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"symbol": "JSW"})
+        )
+
+        await decode(symbol="JSW", lang="pl")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["lang"] == "pl"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_en_lang_not_sent(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"symbol": "AAPL"})
+        )
+
+        await decode(symbol="AAPL", lang="en")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert "lang" not in params
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_decode_endpoint(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "X"}))
+
+        await decode(symbol="X")
+
+        url = mock_client.get.call_args[0][0]
+        assert "/decode" in url
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data API error"):
+            await decode(symbol="AAPL")
