@@ -27,6 +27,8 @@ mcp = FastMCP(
     "rozkoduj",
     instructions=(
         "Market screening and technical analysis for stocks, crypto, and forex. "
+        "Use 'digest' to scan all global markets and surface anomalies (gems) — "
+        "volume spikes, RSI extremes, big moves, 52-week highs/lows. "
         "Use 'scan' to screen markets, 'analyze' for single-symbol TA, "
         "'score' for holistic 0-100 scoring, 'fundamentals' for valuation and analyst data, "
         "'buzz' for per-ticker attention signal (news + Wikipedia), "
@@ -50,6 +52,8 @@ import rozkoduj_mcp.tools.analyze as _analyze  # noqa: F401, E402
 import rozkoduj_mcp.tools.buzz as _buzz  # noqa: F401, E402
 import rozkoduj_mcp.tools.calendar as _calendar  # noqa: F401, E402
 import rozkoduj_mcp.tools.compare as _compare  # noqa: F401, E402
+import rozkoduj_mcp.tools.decode as _decode  # noqa: F401, E402
+import rozkoduj_mcp.tools.digest as _digest  # noqa: F401, E402
 import rozkoduj_mcp.tools.fundamentals as _fundamentals  # noqa: F401, E402
 import rozkoduj_mcp.tools.market_pulse as _market_pulse  # noqa: F401, E402
 import rozkoduj_mcp.tools.movers as _movers  # noqa: F401, E402
