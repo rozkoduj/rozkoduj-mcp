@@ -106,3 +106,21 @@ async def calendar(days: int = 7, countries: str = "US", importance: int = 0) ->
         "calendar",
         params={"days": days, "countries": countries, "importance": importance},
     )
+
+
+async def digest(market: str | None = None, limit: int = 20) -> dict[str, Any]:
+    """Scan markets for anomalies and return top gems ranked by surprise."""
+    params: dict[str, str | int] = {"limit": limit}
+    if market:
+        params["market"] = market
+    return await _get("/digest", f"digest {market or 'global'}", params=params)  # type: ignore[no-any-return]
+
+
+async def decode(symbol: str, query: str = "", lang: str = "en") -> dict[str, Any]:
+    """Full 3-dimensional decode: technical (multi-TF) + fundamental + sentiment."""
+    params: dict[str, str] = {"symbol": symbol}
+    if query:
+        params["query"] = query
+    if lang != "en":
+        params["lang"] = lang
+    return await _get("/decode", f"decode {symbol}", params=params)  # type: ignore[no-any-return]
