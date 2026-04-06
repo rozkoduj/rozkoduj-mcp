@@ -306,9 +306,7 @@ class TestDigestScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_default_params(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(
-            return_value=_mock_response({"gems": [], "scope": "global"})
-        )
+        mock_client.get = AsyncMock(return_value=_mock_response({"gems": [], "scope": "global"}))
 
         result = await digest()
 
@@ -320,9 +318,7 @@ class TestDigestScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_with_market(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(
-            return_value=_mock_response({"gems": [], "scope": "crypto"})
-        )
+        mock_client.get = AsyncMock(return_value=_mock_response({"gems": [], "scope": "crypto"}))
 
         result = await digest(market="crypto")
 
@@ -370,9 +366,7 @@ class TestDecodeScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_with_query(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(
-            return_value=_mock_response({"symbol": "SHL.DE"})
-        )
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "SHL.DE"}))
 
         await decode(symbol="SHL.DE", query="Siemens Healthineers")
 
@@ -382,9 +376,7 @@ class TestDecodeScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_with_non_en_lang(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(
-            return_value=_mock_response({"symbol": "JSW"})
-        )
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "JSW"}))
 
         await decode(symbol="JSW", lang="pl")
 
@@ -394,9 +386,7 @@ class TestDecodeScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_en_lang_not_sent(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(
-            return_value=_mock_response({"symbol": "AAPL"})
-        )
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "AAPL"}))
 
         await decode(symbol="AAPL", lang="en")
 
