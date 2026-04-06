@@ -49,11 +49,11 @@ mcp = FastMCP(
 import rozkoduj_mcp.prompts as _prompts  # noqa: F401, E402
 import rozkoduj_mcp.resources as _resources  # noqa: F401, E402
 import rozkoduj_mcp.tools.analyze as _analyze  # noqa: F401, E402
-import rozkoduj_mcp.tools.decode as _decode  # noqa: F401, E402
-import rozkoduj_mcp.tools.digest as _digest  # noqa: F401, E402
 import rozkoduj_mcp.tools.buzz as _buzz  # noqa: F401, E402
 import rozkoduj_mcp.tools.calendar as _calendar  # noqa: F401, E402
 import rozkoduj_mcp.tools.compare as _compare  # noqa: F401, E402
+import rozkoduj_mcp.tools.decode as _decode  # noqa: F401, E402
+import rozkoduj_mcp.tools.digest as _digest  # noqa: F401, E402
 import rozkoduj_mcp.tools.fundamentals as _fundamentals  # noqa: F401, E402
 import rozkoduj_mcp.tools.market_pulse as _market_pulse  # noqa: F401, E402
 import rozkoduj_mcp.tools.movers as _movers  # noqa: F401, E402
