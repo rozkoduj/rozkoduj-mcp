@@ -8,7 +8,7 @@
 [![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex - powered by [MCP](https://modelcontextprotocol.io/).
+Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex.
 
 ### Just ask:
 
@@ -177,7 +177,6 @@ Is there any buzz around Tesla?
 
 20+ markets worldwide. Symbols are auto-detected - `BTCUSDT` routes to crypto, `AAPL` to US stocks, `EURUSD` to forex.
 
-Market data via [rozkoduj.com](https://rozkoduj.com).
 
 ## License
 
