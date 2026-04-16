@@ -4,7 +4,6 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import httpx
 from mcp.server.fastmcp import FastMCP
 
 from rozkoduj_mcp.services import scanner
@@ -15,12 +14,11 @@ _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
     """Manage httpx client lifecycle — proper startup/shutdown."""
-    scanner.client = httpx.AsyncClient(base_url=_API_URL, timeout=20.0)
+    scanner.setup_client(_API_URL)
     try:
         yield None
     finally:
-        await scanner.client.aclose()
-        scanner.client = None
+        await scanner.close_client()
 
 
 mcp = FastMCP(
