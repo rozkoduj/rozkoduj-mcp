@@ -12,10 +12,13 @@ def main() -> None:
 
     if transport == "streamable-http":
         _run_http()
-    else:
+    elif transport == "stdio":
         from rozkoduj_mcp.server import mcp
 
         mcp.run(transport="stdio")
+    else:
+        msg = f"Invalid MCP_TRANSPORT={transport!r}; must be 'stdio' or 'streamable-http'."
+        raise ValueError(msg)
 
 
 def _run_http() -> None:
@@ -25,10 +28,12 @@ def _run_http() -> None:
 
     import uvicorn
     from starlette.applications import Starlette
+    from starlette.middleware import Middleware
     from starlette.requests import Request
     from starlette.responses import PlainTextResponse
     from starlette.routing import Mount, Route
 
+    from rozkoduj_mcp.logging import RequestLoggingMiddleware
     from rozkoduj_mcp.server import mcp
     from rozkoduj_mcp.services import scanner
 
@@ -40,18 +45,12 @@ def _run_http() -> None:
 
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
-        import httpx
-
-        scanner.client = httpx.AsyncClient(
-            base_url=os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com"),
-            timeout=20.0,
-        )
+        scanner.setup_client(os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com"))
         async with mcp.session_manager.run():
             try:
                 yield
             finally:
-                await scanner.client.aclose()
-                scanner.client = None
+                await scanner.close_client()
 
     app = Starlette(
         routes=[
@@ -59,6 +58,7 @@ def _run_http() -> None:
             Route("/health", health),
             Mount("/", app=mcp.streamable_http_app()),
         ],
+        middleware=[Middleware(RequestLoggingMiddleware)],
         lifespan=lifespan,
     )
 
