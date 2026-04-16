@@ -4,8 +4,23 @@ from typing import Any
 
 import httpx
 
-# Managed by server.py lifespan — created on startup, closed on shutdown.
+# Managed by server / HTTP lifespan — created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
+
+
+def setup_client(api_url: str, timeout: float = 20.0) -> httpx.AsyncClient:
+    """Create the module-level httpx client. Called from each transport's lifespan."""
+    global client
+    client = httpx.AsyncClient(base_url=api_url, timeout=timeout)
+    return client
+
+
+async def close_client() -> None:
+    """Close the module-level httpx client. Idempotent."""
+    global client
+    if client is not None:
+        await client.aclose()
+        client = None
 
 
 def _get_client() -> httpx.AsyncClient:
