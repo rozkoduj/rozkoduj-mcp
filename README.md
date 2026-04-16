@@ -1,3 +1,5 @@
+<div align="center">
+
 # Rozkoduj MCP - Decode the Markets
 
 [![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-000000?style=flat-square&logoColor=white)](https://cursor.com/en/install-mcp?name=rozkoduj&config=eyJuYW1lIjoicm96a29kdWoiLCJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vbWNwLnJvemtvZHVqLmNvbS9tY3AifQ==)
@@ -10,23 +12,46 @@
 
 Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex.
 
-### Just ask:
+</div>
 
+> [!TIP]
+> ### Just ask
+>
+> - *"Score AAPL - should I buy?"*
+> - *"What are today's hidden gems in crypto?"*
+> - *"Full analysis of NVDA - technicals, fundamentals, and news"*
+> - *"Is the market risk-on or risk-off right now?"*
+
+## How it works
+
+You ask in plain language. The AI picks the right tools. You get an answer with evidence — not a data dump.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant You
+    participant AI as Your AI assistant
+    participant R as Rozkoduj MCP
+
+    You->>AI: "Should I buy AAPL?"
+    AI->>R: score(AAPL)
+    AI->>R: analyze(AAPL, 1d)
+    AI->>R: buzz("Apple stock")
+    R-->>AI: live indicators · fundamentals · news
+    AI-->>You: 59/100 SLIGHT_BUY with reasoning
 ```
-"Score AAPL - should I buy?"
-"What are today's hidden gems in crypto?"
-"Full analysis of NVDA - technicals, fundamentals, and news"
-"Is the market risk-on or risk-off right now?"
-```
 
-## What You Get
+Same pattern works for any market question:
 
-- **Ask "should I buy?" and get a real answer** - every symbol gets a 0-100 score combining technical signals, fundamental health, and news sentiment into a single BUY/HOLD/SELL verdict
-- **See what the market is hiding** - anomaly radar scans 20+ global markets and surfaces unusual activity (volume spikes, extreme readings, big moves) ranked by 1-5 star surprise score
-- **Check if timeframes agree** - daily, 4h, and weekly signals shown side by side so you know if a trend is confirmed or conflicting
-- **Screen any market your way** - filter by 30+ indicators, fundamentals, or performance metrics. Or use preset screens: unusual volume, oversold bounce, breakout, value, momentum, dividend, growth
-- **Know the market mood** - fear & greed indices, VIX, and economic calendar in one call
-- **Catch the buzz** - news attention signal for any ticker in any language
+| You ask                              | AI calls                          | You get                                                              |
+| ------------------------------------ | --------------------------------- | -------------------------------------------------------------------- |
+| *"Should I buy AAPL?"*               | `score` · `analyze` · `buzz`      | 0-100 verdict combining technical, fundamental, and sentiment        |
+| *"Decode NVDA — full picture."*      | `decode`                          | 3-D analysis (1d/4h/1W TA + fundamentals + news), one final verdict  |
+| *"Hidden gems in crypto today?"*     | `digest`                          | Ranked anomalies — volume spikes, RSI extremes, big moves, 52W breaks |
+| *"Do timeframes agree on TSLA?"*     | `multitf`                         | 15m / 1h / 4h / 1d / 1W side-by-side with alignment score            |
+| *"Find oversold bounce in EU."*      | `smart_screen('oversold_bounce')` | Filtered list: RSI < 30 + MACD bullish cross                         |
+| *"What's the market mood?"*          | `market_pulse` · `calendar`       | RISK-ON / RISK-OFF + fear & greed + VIX + upcoming events            |
+| *"Any buzz around Tesla?"*           | `buzz`                            | Attention level + fresh headlines from major sources                 |
 
 ## Quick Start
 
