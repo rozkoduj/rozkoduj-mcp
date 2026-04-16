@@ -1,3 +1,5 @@
+<div align="center">
+
 # Rozkoduj MCP - Decode the Markets
 
 [![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-000000?style=flat-square&logoColor=white)](https://cursor.com/en/install-mcp?name=rozkoduj&config=eyJuYW1lIjoicm96a29kdWoiLCJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vbWNwLnJvemtvZHVqLmNvbS9tY3AifQ==)
@@ -10,14 +12,15 @@
 
 Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex.
 
-### Just ask:
+</div>
 
-```
-"Score AAPL - should I buy?"
-"What are today's hidden gems in crypto?"
-"Full analysis of NVDA - technicals, fundamentals, and news"
-"Is the market risk-on or risk-off right now?"
-```
+> [!TIP]
+> ### Just ask
+>
+> - *"Score AAPL - should I buy?"*
+> - *"What are today's hidden gems in crypto?"*
+> - *"Full analysis of NVDA - technicals, fundamentals, and news"*
+> - *"Is the market risk-on or risk-off right now?"*
 
 ## What You Get
 
