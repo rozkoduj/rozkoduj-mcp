@@ -43,15 +43,15 @@ sequenceDiagram
 
 Same pattern works for any market question:
 
-| You ask                              | AI calls                          | You get                                                              |
-| ------------------------------------ | --------------------------------- | -------------------------------------------------------------------- |
-| *"Should I buy AAPL?"*               | `score` · `analyze` · `buzz`      | 0-100 verdict combining technical, fundamental, and sentiment        |
-| *"Decode NVDA — full picture."*      | `decode`                          | 3-D analysis (1d/4h/1W TA + fundamentals + news), one final verdict  |
-| *"Hidden gems in crypto today?"*     | `digest`                          | Ranked anomalies — volume spikes, RSI extremes, big moves, 52W breaks |
-| *"Do timeframes agree on TSLA?"*     | `multitf`                         | 15m / 1h / 4h / 1d / 1W side-by-side with alignment score            |
-| *"Find oversold bounce in EU."*      | `smart_screen('oversold_bounce')` | Filtered list: RSI < 30 + MACD bullish cross                         |
-| *"What's the market mood?"*          | `market_pulse` · `calendar`       | RISK-ON / RISK-OFF + fear & greed + VIX + upcoming events            |
-| *"Any buzz around Tesla?"*           | `buzz`                            | Attention level + fresh headlines from major sources                 |
+| You ask                              | You get                                                              |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| *"Should I buy AAPL?"*               | 0-100 verdict combining technical, fundamental, and sentiment        |
+| *"Decode NVDA — full picture."*      | 3-D analysis (1d/4h/1W TA + fundamentals + news), one final verdict  |
+| *"Hidden gems in crypto today?"*     | Ranked anomalies — volume spikes, RSI extremes, big moves, 52W breaks |
+| *"Do timeframes agree on TSLA?"*     | 15m / 1h / 4h / 1d / 1W side-by-side with alignment score            |
+| *"Find oversold bounce in EU."*      | Filtered list: RSI < 30 + MACD bullish cross                         |
+| *"What's the market mood?"*          | RISK-ON / RISK-OFF + fear & greed + VIX + upcoming events            |
+| *"Any buzz around Tesla?"*           | Attention level + fresh headlines from major sources                 |
 
 ## Quick Start
 
