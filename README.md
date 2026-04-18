@@ -14,7 +14,7 @@ Screening, analysis, and scoring across stocks, crypto, and forex - right inside
 [![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-000000?style=for-the-badge&logoColor=white)](https://cursor.com/en/install-mcp?name=rozkoduj&config=eyJuYW1lIjoicm96a29kdWoiLCJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vbWNwLnJvemtvZHVqLmNvbS9tY3AifQ==)
 [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=rozkoduj&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A//mcp.rozkoduj.com/mcp%22%7D)
 
-[![CI / CD](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/ci.yml?branch=main&style=flat-square&color=2f6feb&label=CI%20%2F%20CD)](https://github.com/rozkoduj/rozkoduj-mcp/actions)
+[![CI / CD](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/ci.yml?branch=main&style=flat-square&color=2f6feb&label=CI%20%2F%20CD&logo=githubactions&logoColor=white)](https://github.com/rozkoduj/rozkoduj-mcp/actions)
 [![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp?style=flat-square&color=2f6feb)](https://pypi.org/project/rozkoduj-mcp/)
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-2f6feb?style=flat-square)](https://python.org)
 [![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square&color=2f6feb)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
