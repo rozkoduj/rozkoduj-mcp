@@ -36,7 +36,7 @@ async def _post(path: str, context: str, **kwargs: Any) -> Any:
         resp = await _get_client().post(path, **kwargs)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
-        msg = f"Data API error for {context}: {exc}"
+        msg = f"Data backend unavailable for {context}"
         raise RuntimeError(msg) from exc
     return resp.json()
 
@@ -47,7 +47,7 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
         resp = await _get_client().get(path, **kwargs)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
-        msg = f"Data API error for {context}: {exc}"
+        msg = f"Data backend unavailable for {context}"
         raise RuntimeError(msg) from exc
     return resp.json()
 
