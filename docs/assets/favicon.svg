@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#000"/>
+
+  <!-- Candle -->
+  <line x1="11" y1="3" x2="11" y2="29" stroke="#33AACC" stroke-width="2" stroke-linecap="butt"/>
+  <rect x="7" y="10" width="8" height="12" fill="#33AACC"/>
+
+  <!-- 0 — outlined ellipse -->
+  <ellipse cx="23" cy="8.5" rx="3.2" ry="5" fill="none" stroke="#33AACC" stroke-width="2.2"/>
+
+  <!-- 1 — angled flag + vertical stroke -->
+  <path d="M20 20.5 L23 18 L23 28" fill="none" stroke="#33AACC" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
