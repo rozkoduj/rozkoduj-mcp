@@ -68,7 +68,7 @@ class TestScanMarket:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await scan_market(market="crypto")
 
 
@@ -103,7 +103,7 @@ class TestAnalyze:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await analyze(symbol="AAPL")
 
 
@@ -167,7 +167,7 @@ class TestScore:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await score(symbol="AAPL")
 
 
@@ -202,7 +202,7 @@ class TestFundamentals:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await fundamentals(symbol="AAPL")
 
 
@@ -238,7 +238,7 @@ class TestBuzz:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await buzz(query="AAPL")
 
 
@@ -263,7 +263,7 @@ class TestMarketPulse:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await market_pulse()
 
 
@@ -296,7 +296,7 @@ class TestCalendar:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await calendar()
 
 
@@ -341,7 +341,7 @@ class TestDigestScanner:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await digest()
 
 
@@ -408,5 +408,5 @@ class TestDecodeScanner:
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
 
-        with pytest.raises(RuntimeError, match="Data API error"):
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await decode(symbol="AAPL")
