@@ -1,8 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-  <img alt="Rozkoduj MCP" src="docs/assets/logo.svg" width="220">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rozkoduj/rozkoduj-mcp/main/docs/assets/logo-dark.svg">
+  <img alt="Rozkoduj MCP" src="https://raw.githubusercontent.com/rozkoduj/rozkoduj-mcp/main/docs/assets/logo.svg" width="220">
 </picture>
 
 # Rozkoduj MCP - Decode the Markets
