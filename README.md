@@ -1,16 +1,20 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+  <img alt="Rozkoduj MCP" src="docs/assets/logo.svg" width="220">
+</picture>
+
 # Rozkoduj MCP - Decode the Markets
 
-[![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-000000?style=flat-square&logoColor=white)](https://cursor.com/en/install-mcp?name=rozkoduj&config=eyJuYW1lIjoicm96a29kdWoiLCJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vbWNwLnJvemtvZHVqLmNvbS9tY3AifQ==)
-[![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=rozkoduj&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A//mcp.rozkoduj.com/mcp%22%7D)
-[![CI](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/rozkoduj/rozkoduj-mcp/actions)
-[![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp?style=flat-square)](https://pypi.org/project/rozkoduj-mcp/)
-[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
-[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+Screening, analysis, and scoring across stocks, crypto, and forex - right inside your AI assistant.
 
-Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex.
+[![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp)](https://pypi.org/project/rozkoduj-mcp/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue)](https://python.org)
+[![CI](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/ci.yml?branch=main&label=CI)](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/ci.yml)
+[![Deploy](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/deploy.yml?branch=main&label=Deploy)](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/deploy.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
 
 </div>
 
@@ -22,38 +26,7 @@ Decode the markets with your AI assistant. Screening, analysis, and scoring acro
 > - *"Full analysis of NVDA - technicals, fundamentals, and news"*
 > - *"Is the market risk-on or risk-off right now?"*
 
-## How it works
-
-You ask in plain language. The AI picks the right tools. You get an answer with evidence — not a data dump.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant You
-    participant AI as Your AI assistant
-    participant R as Rozkoduj MCP
-
-    You->>AI: "Should I buy AAPL?"
-    AI->>R: score(AAPL)
-    AI->>R: analyze(AAPL, 1d)
-    AI->>R: buzz("Apple stock")
-    R-->>AI: live indicators · fundamentals · news
-    AI-->>You: 59/100 SLIGHT_BUY with reasoning
-```
-
-Same pattern works for any market question:
-
-| You ask                              | You get                                                              |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| *"Should I buy AAPL?"*               | 0-100 verdict combining technical, fundamental, and sentiment        |
-| *"Decode NVDA — full picture."*      | 3-D analysis (1d/4h/1W TA + fundamentals + news), one final verdict  |
-| *"Hidden gems in crypto today?"*     | Ranked anomalies — volume spikes, RSI extremes, big moves, 52W breaks |
-| *"Do timeframes agree on TSLA?"*     | 15m / 1h / 4h / 1d / 1W side-by-side with alignment score            |
-| *"Find oversold bounce in EU."*      | Filtered list: RSI < 30 + MACD bullish cross                         |
-| *"What's the market mood?"*          | RISK-ON / RISK-OFF + fear & greed + VIX + upcoming events            |
-| *"Any buzz around Tesla?"*           | Attention level + fresh headlines from major sources                 |
-
-## Quick Start
+## Quick start
 
 Add the hosted server URL to your MCP client:
 
@@ -131,6 +104,37 @@ docker run -p 8080:8080 $(docker build -q .)  # Docker
 ```
 </details>
 
+## How it works
+
+You ask in plain language. The AI picks the right tools. You get an answer with evidence - not a data dump.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant You
+    participant AI as Your AI assistant
+    participant R as Rozkoduj MCP
+
+    You->>AI: "Should I buy AAPL?"
+    AI->>R: score(AAPL)
+    AI->>R: analyze(AAPL, 1d)
+    AI->>R: buzz("Apple stock")
+    R-->>AI: live indicators · fundamentals · news
+    AI-->>You: 59/100 SLIGHT_BUY with reasoning
+```
+
+Same pattern works for any market question:
+
+| You ask                              | You get                                                              |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| *"Should I buy AAPL?"*               | 0-100 verdict combining technical, fundamental, and sentiment        |
+| *"Decode NVDA - full picture."*      | 3-D analysis (1d/4h/1W TA + fundamentals + news), one final verdict  |
+| *"Hidden gems in crypto today?"*     | Ranked anomalies - volume spikes, RSI extremes, big moves, 52W breaks |
+| *"Do timeframes agree on TSLA?"*     | 15m / 1h / 4h / 1d / 1W side-by-side with alignment score            |
+| *"Find oversold bounce in EU."*      | Filtered list: RSI < 30 + MACD bullish cross                         |
+| *"What's the market mood?"*          | RISK-ON / RISK-OFF + fear & greed + VIX + upcoming events            |
+| *"Any buzz around Tesla?"*           | Attention level + fresh headlines from major sources                 |
+
 ## Tools
 
 ### Find opportunities
@@ -175,7 +179,7 @@ docker run -p 8080:8080 $(docker build -q .)  # Docker
 
 </details>
 
-## Example Prompts
+## Example prompts
 
 **"Should I buy?"**
 ```
@@ -201,7 +205,6 @@ Is there any buzz around Tesla?
 ## Coverage
 
 20+ markets worldwide. Symbols are auto-detected - `BTCUSDT` routes to crypto, `AAPL` to US stocks, `EURUSD` to forex.
-
 
 ## License
 

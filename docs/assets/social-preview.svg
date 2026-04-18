@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="85%">
+      <stop offset="0%" stop-color="#1a2332"/>
+      <stop offset="100%" stop-color="#0b0f16"/>
+    </radialGradient>
+    <style>
+      .wick { stroke: #33AACC; stroke-width: 12; stroke-linecap: butt; fill: none; }
+      .body { fill: #33AACC; }
+      .wordmark { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight: 800; fill: #ffffff; letter-spacing: -1.5px; }
+      .tagline { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight: 600; fill: #33AACC; }
+      .sub { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight: 500; fill: #8b949e; }
+      .url { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-weight: 500; fill: #6e7681; letter-spacing: 0.5px; }
+    </style>
+    <symbol id="d0" overflow="visible">
+      <ellipse cx="0" cy="0" rx="7" ry="11" fill="none" stroke="#33AACC" stroke-width="5"/>
+    </symbol>
+    <symbol id="d1" overflow="visible">
+      <path d="M-3.3 -5.5 L3.3 -11 L3.3 11" fill="none" stroke="#33AACC" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <g transform="translate(85, 135) scale(0.58)">
+    <line class="wick" x1="114" y1="253" x2="114" y2="378"/>
+    <rect class="body" x="84" y="308" width="59" height="15"/>
+    <line class="wick" x1="200" y1="278" x2="200" y2="487"/>
+    <rect class="body" x="171" y="333" width="59" height="99"/>
+    <line class="wick" x1="291" y1="143" x2="291" y2="420"/>
+    <rect class="body" x="262" y="198" width="59" height="222"/>
+    <line class="wick" x1="382" y1="234" x2="382" y2="433"/>
+    <rect class="body" x="352" y="289" width="59" height="89"/>
+    <line class="wick" x1="465" y1="131" x2="465" y2="338"/>
+    <rect class="body" x="436" y="186" width="59" height="97"/>
+    <line class="wick" x1="551" y1="212" x2="551" y2="343"/>
+    <rect class="body" x="521" y="267" width="59" height="21"/>
+    <use href="#d0" x="360" y="79"/>  <use href="#d1" x="403" y="79"/>
+    <use href="#d0" x="360" y="120"/> <use href="#d1" x="403" y="120"/>
+    <use href="#d0" x="360" y="161"/> <use href="#d1" x="403" y="161"/>
+    <use href="#d0" x="360" y="202"/> <use href="#d1" x="403" y="202"/>
+    <use href="#d0" x="272" y="437"/> <use href="#d1" x="315" y="437"/>
+    <use href="#d0" x="272" y="478"/> <use href="#d0" x="315" y="478"/>
+    <use href="#d0" x="272" y="519"/> <use href="#d0" x="315" y="519"/>
+  </g>
+
+  <text class="wordmark" x="520" y="255" font-size="80">Rozkoduj MCP</text>
+  <text class="tagline" x="520" y="315" font-size="36">Decode the Markets.</text>
+  <text class="sub" x="520" y="380" font-size="24">Screening - Analysis - Scoring for your AI</text>
+  <text class="sub" x="520" y="415" font-size="22">Stocks - Crypto - Forex</text>
+
+  <text class="url" x="520" y="555" font-size="22">mcp.rozkoduj.com</text>
+</svg>
