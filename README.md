@@ -9,12 +9,12 @@
 
 Screening, analysis, and scoring across stocks, crypto, and forex - right inside your AI assistant.
 
-[![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp?style=flat-square&color=2f6feb)](https://pypi.org/project/rozkoduj-mcp/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2f6feb?style=flat-square)](LICENSE)
-[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-2f6feb?style=flat-square)](https://python.org)
-[![CI](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/ci.yml?branch=main&style=flat-square&color=2f6feb&label=CI)](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/ci.yml)
-[![Deploy](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/deploy.yml?branch=main&style=flat-square&color=2f6feb&label=Deploy)](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/deploy.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square&color=2f6feb)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
+[![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp)](https://pypi.org/project/rozkoduj-mcp/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue)](https://python.org)
+[![CI](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/ci.yml?branch=main&label=CI)](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/ci.yml)
+[![Deploy](https://img.shields.io/github/actions/workflow/status/rozkoduj/rozkoduj-mcp/deploy.yml?branch=main&label=Deploy)](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/deploy.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
 
 </div>
 
