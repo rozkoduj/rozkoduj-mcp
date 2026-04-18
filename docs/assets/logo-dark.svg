@@ -1,7 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <rect width="128" height="128" rx="28" fill="#0d1117"/>
-  <line x1="44" y1="12" x2="44" y2="116" stroke="#33AACC" stroke-width="8" stroke-linecap="butt"/>
-  <rect x="28" y="40" width="32" height="48" fill="#33AACC"/>
-  <ellipse cx="92" cy="34" rx="12.8" ry="20" fill="none" stroke="#33AACC" stroke-width="8.8"/>
-  <path d="M80 82 L92 72 L92 112" fill="none" stroke="#33AACC" stroke-width="8.8" stroke-linejoin="round" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 613" width="640" height="613">
+  <defs>
+    <style>
+      .wick { stroke: #5CC8E4; stroke-width: 12; stroke-linecap: butt; fill: none; }
+      .body { fill: #5CC8E4; }
+    </style>
+    <symbol id="d0" overflow="visible">
+      <ellipse cx="0" cy="0" rx="7" ry="11" fill="none" stroke="#5CC8E4" stroke-width="5"/>
+    </symbol>
+    <symbol id="d1" overflow="visible">
+      <path d="M-3.3 -5.5 L3.3 -11 L3.3 11" fill="none" stroke="#5CC8E4" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <line class="wick" x1="114" y1="253" x2="114" y2="378"/>
+  <rect class="body" x="84" y="308" width="59" height="15"/>
+  <line class="wick" x1="200" y1="278" x2="200" y2="487"/>
+  <rect class="body" x="171" y="333" width="59" height="99"/>
+  <line class="wick" x1="291" y1="143" x2="291" y2="420"/>
+  <rect class="body" x="262" y="198" width="59" height="222"/>
+  <line class="wick" x1="382" y1="234" x2="382" y2="433"/>
+  <rect class="body" x="352" y="289" width="59" height="89"/>
+  <line class="wick" x1="465" y1="131" x2="465" y2="338"/>
+  <rect class="body" x="436" y="186" width="59" height="97"/>
+  <line class="wick" x1="551" y1="212" x2="551" y2="343"/>
+  <rect class="body" x="521" y="267" width="59" height="21"/>
+
+  <use href="#d0" x="360" y="79"/>  <use href="#d1" x="403" y="79"/>
+  <use href="#d0" x="360" y="120"/> <use href="#d1" x="403" y="120"/>
+  <use href="#d0" x="360" y="161"/> <use href="#d1" x="403" y="161"/>
+  <use href="#d0" x="360" y="202"/> <use href="#d1" x="403" y="202"/>
+
+  <use href="#d0" x="272" y="437"/> <use href="#d1" x="315" y="437"/>
+  <use href="#d0" x="272" y="478"/> <use href="#d0" x="315" y="478"/>
+  <use href="#d0" x="272" y="519"/> <use href="#d0" x="315" y="519"/>
 </svg>

@@ -2,14 +2,12 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-  <img alt="Rozkoduj MCP" src="docs/assets/logo.svg" width="140" height="140">
+  <img alt="Rozkoduj MCP" src="docs/assets/logo.svg" width="220">
 </picture>
 
-# Rozkoduj MCP
+# Rozkoduj MCP - Decode the Markets
 
-### Decode the markets with your AI assistant
-
-Screening, analysis, and scoring across stocks, crypto, and forex.
+Screening, analysis, and scoring across stocks, crypto, and forex - right inside your AI assistant.
 
 <br>
 
@@ -17,10 +15,10 @@ Screening, analysis, and scoring across stocks, crypto, and forex.
 [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=rozkoduj&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A//mcp.rozkoduj.com/mcp%22%7D)
 
 [![CI](https://github.com/rozkoduj/rozkoduj-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/rozkoduj/rozkoduj-mcp/actions)
-[![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp?style=flat-square)](https://pypi.org/project/rozkoduj-mcp/)
-[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=flat-square)](https://python.org)
-[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp?style=flat-square&color=33AACC)](https://pypi.org/project/rozkoduj-mcp/)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-33AACC?style=flat-square)](https://python.org)
+[![Coverage](https://img.shields.io/codecov/c/github/rozkoduj/rozkoduj-mcp?style=flat-square&color=33AACC)](https://codecov.io/gh/rozkoduj/rozkoduj-mcp)
+[![License: MIT](https://img.shields.io/badge/license-MIT-33AACC?style=flat-square)](LICENSE)
 
 </div>
 
