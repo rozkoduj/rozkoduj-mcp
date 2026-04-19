@@ -13,7 +13,7 @@ async def decode(
     query: str = "",
     lang: str = "en",
 ) -> dict[str, Any]:
-    """Decode a symbol — full 3-dimensional analysis across multiple timeframes.
+    """Decode a symbol - full 3-dimensional analysis across multiple timeframes.
 
     Returns technical scores (daily, 4h, weekly), fundamental valuation
     and analyst data, and news sentiment. Each dimension scored 0-100.
