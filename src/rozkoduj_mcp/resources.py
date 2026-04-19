@@ -1,33 +1,38 @@
 """MCP resources: reference data for AI context."""
 
 import json
+from typing import get_args
 
 from rozkoduj_mcp.server import mcp
+from rozkoduj_mcp.tools import Market
 
-# Markets available for screening via the scan tool.
-_MARKETS: list[dict[str, str]] = [
-    {"id": "us", "name": "US stocks (NYSE, NASDAQ, AMEX)"},
-    {"id": "uk", "name": "UK stocks (LSE)"},
-    {"id": "germany", "name": "German stocks (XETR, FWB)"},
-    {"id": "france", "name": "French stocks (Euronext Paris)"},
-    {"id": "spain", "name": "Spanish stocks (BME)"},
-    {"id": "italy", "name": "Italian stocks (MIL)"},
-    {"id": "poland", "name": "Polish stocks (GPW)"},
-    {"id": "turkey", "name": "Turkish stocks (BIST)"},
-    {"id": "india", "name": "Indian stocks (BSE, NSE)"},
-    {"id": "japan", "name": "Japanese stocks (TSE)"},
-    {"id": "australia", "name": "Australian stocks (ASX)"},
-    {"id": "brazil", "name": "Brazilian stocks (B3)"},
-    {"id": "canada", "name": "Canadian stocks (TSX)"},
-    {"id": "hongkong", "name": "Hong Kong stocks (HKEX)"},
-    {"id": "korea", "name": "Korean stocks (KRX)"},
-    {"id": "china", "name": "Chinese stocks (SSE, SZSE)"},
-    {"id": "taiwan", "name": "Taiwanese stocks (TWSE)"},
-    {"id": "indonesia", "name": "Indonesian stocks (IDX)"},
-    {"id": "malaysia", "name": "Malaysian stocks (Bursa)"},
-    {"id": "crypto", "name": "Cryptocurrency (all exchanges)"},
-    {"id": "forex", "name": "Forex pairs"},
-]
+# Display names keyed by Market literal. KeyError at import time if a Market
+# id is added to the Literal without a matching display name here.
+_MARKET_NAMES: dict[Market, str] = {
+    "us": "US stocks (NYSE, NASDAQ, AMEX)",
+    "uk": "UK stocks (LSE)",
+    "germany": "German stocks (XETR, FWB)",
+    "france": "French stocks (Euronext Paris)",
+    "spain": "Spanish stocks (BME)",
+    "italy": "Italian stocks (MIL)",
+    "poland": "Polish stocks (GPW)",
+    "turkey": "Turkish stocks (BIST)",
+    "india": "Indian stocks (BSE, NSE)",
+    "japan": "Japanese stocks (TSE)",
+    "australia": "Australian stocks (ASX)",
+    "brazil": "Brazilian stocks (B3)",
+    "canada": "Canadian stocks (TSX)",
+    "hongkong": "Hong Kong stocks (HKEX)",
+    "korea": "Korean stocks (KRX)",
+    "china": "Chinese stocks (SSE, SZSE)",
+    "taiwan": "Taiwanese stocks (TWSE)",
+    "indonesia": "Indonesian stocks (IDX)",
+    "malaysia": "Malaysian stocks (Bursa)",
+    "crypto": "Cryptocurrency (all exchanges)",
+    "forex": "Forex pairs",
+}
+
+_MARKETS: list[dict[str, str]] = [{"id": m, "name": _MARKET_NAMES[m]} for m in get_args(Market)]
 
 # Most useful screening columns.
 _FIELDS: list[dict[str, str]] = [
