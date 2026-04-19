@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-# Managed by server / HTTP lifespan — created on startup, closed on shutdown.
+# Managed by server / HTTP lifespan - created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
 
 
@@ -25,7 +25,7 @@ async def close_client() -> None:
 
 def _get_client() -> httpx.AsyncClient:
     if client is None:
-        msg = "scanner.client not initialized — server lifespan not started"
+        msg = "scanner.client not initialized - server lifespan not started"
         raise RuntimeError(msg)
     return client
 
