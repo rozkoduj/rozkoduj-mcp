@@ -9,7 +9,7 @@ from rozkoduj_mcp.tools import TOOL_ANNOTATIONS
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def market_pulse() -> dict[str, Any]:
-    """Get current market regime — RISK-ON, RISK-OFF, or NEUTRAL.
+    """Get current market regime - RISK-ON, RISK-OFF, or NEUTRAL.
 
     Combines stock fear & greed (US, 7 sub-indicators),
     crypto fear & greed, and VIX into a single verdict.
