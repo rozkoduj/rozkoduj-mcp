@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Market
 
 Preset = Literal[
     "unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend", "value", "growth"
@@ -126,7 +126,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def smart_screen(
     preset: Preset,
-    market: str = "us",
+    market: Market = "us",
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """Run a pre-built intelligent screen.
@@ -134,7 +134,6 @@ async def smart_screen(
     Presets: unusual_volume, oversold_bounce, breakout, momentum, dividend, value, growth.
     Value and growth combine fundamental data with technical analysis.
     """
-    validate_str(market, "market")
     limit = max(1, min(limit, 50))
     config = _PRESETS[preset]
 
