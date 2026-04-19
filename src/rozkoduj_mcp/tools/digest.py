@@ -1,4 +1,4 @@
-"""MCP tool: market anomaly radar — scan all markets, surface gems."""
+"""MCP tool: market anomaly radar - scan all markets, surface gems."""
 
 from typing import Any
 

@@ -13,7 +13,7 @@ _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
-    """Manage httpx client lifecycle — proper startup/shutdown."""
+    """Manage httpx client lifecycle - proper startup/shutdown."""
     scanner.setup_client(_API_URL)
     try:
         yield None
@@ -25,7 +25,7 @@ mcp = FastMCP(
     "rozkoduj",
     instructions=(
         "Market screening and technical analysis for stocks, crypto, and forex. "
-        "Use 'digest' to scan all global markets and surface anomalies (gems) — "
+        "Use 'digest' to scan all global markets and surface anomalies (gems) - "
         "volume spikes, RSI extremes, big moves, 52-week highs/lows. "
         "Use 'scan' to screen markets, 'analyze' for single-symbol TA, "
         "'score' for holistic 0-100 scoring, 'fundamentals' for valuation and analyst data, "
