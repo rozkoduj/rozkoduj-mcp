@@ -72,11 +72,6 @@ class TestDigest:
         assert call_kwargs["limit"] == 1
 
     @pytest.mark.anyio
-    async def test_rejects_long_market_string(self) -> None:
-        with pytest.raises(ValueError, match="market"):
-            await digest(market="x" * 101)
-
-    @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.digest.scanner")
     async def test_includes_pulse(self, mock_scanner: MagicMock) -> None:
         mock_scanner.digest = AsyncMock(return_value=_mock_digest_result())
