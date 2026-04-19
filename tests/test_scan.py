@@ -77,11 +77,6 @@ class TestScan:
         assert call_kwargs["limit"] == 1
 
     @pytest.mark.anyio
-    async def test_rejects_long_market_string(self) -> None:
-        with pytest.raises(ValueError, match="market"):
-            await scan(market="x" * 101)
-
-    @pytest.mark.anyio
     async def test_rejects_too_many_filters(self) -> None:
         filters = [{"left": "volume", "operation": "greater", "right": i} for i in range(21)]
         with pytest.raises(ValueError, match="filters"):

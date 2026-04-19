@@ -4,12 +4,12 @@ from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Market, validate_str
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def scan(
-    market: str = "crypto",
+    market: Market = "crypto",
     filters: list[dict[str, Any]] | None = None,
     columns: list[str] | None = None,
     sort_by: str = "volume",
@@ -20,7 +20,6 @@ async def scan(
 
     Returns matching symbols with the requested columns.
     """
-    validate_str(market, "market")
     validate_str(sort_by, "sort_by")
     limit = max(1, min(limit, 100))
     if filters and len(filters) > 20:

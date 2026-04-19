@@ -1,0 +1,34 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+dist/
+
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# VCS
+.git/
+.github/
+.gitignore
+.dockerignore
+
+# Secrets
+.env
+.env.*
+
+# Local dev tooling
+.claude/
+.serena/
+.pre-commit-config.yaml
+.python-version
+
+# Not needed at runtime
+docs/
+tests/
+CLAUDE.md
