@@ -24,7 +24,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "mcp[cli]>=1.26.0,<2.0",
+    "mcp[cli]>=1.26.0",
     "httpx>=0.28.0",
 ]
 
@@ -48,7 +48,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.11.2,<0.12"]
+requires = ["uv_build>=0.11.2"]
 build-backend = "uv_build"
 
 [tool.ruff]
