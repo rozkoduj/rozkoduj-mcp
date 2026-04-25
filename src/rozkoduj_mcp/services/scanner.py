@@ -1,5 +1,6 @@
 """Async client for the rozkoduj data API."""
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -7,20 +8,28 @@ import httpx
 # Managed by server / HTTP lifespan - created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
 
+# Cap concurrent upstream requests per process. Tools that fan out (compare,
+# multitf, decode) used to hammer the backend in lockstep and trip rate limits;
+# the semaphore keeps each MCP request within a friendly burst window.
+_MAX_CONCURRENT_REQUESTS = 4
+_request_semaphore: asyncio.Semaphore | None = None
+
 
 def setup_client(api_url: str, timeout: float = 20.0) -> httpx.AsyncClient:
     """Create the module-level httpx client. Called from each transport's lifespan."""
-    global client
+    global client, _request_semaphore
     client = httpx.AsyncClient(base_url=api_url, timeout=timeout)
+    _request_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_REQUESTS)
     return client
 
 
 async def close_client() -> None:
     """Close the module-level httpx client. Idempotent."""
-    global client
+    global client, _request_semaphore
     if client is not None:
         await client.aclose()
         client = None
+    _request_semaphore = None
 
 
 def _get_client() -> httpx.AsyncClient:
@@ -30,26 +39,41 @@ def _get_client() -> httpx.AsyncClient:
     return client
 
 
+def _get_semaphore() -> asyncio.Semaphore:
+    """Return the concurrency semaphore, lazily creating it if needed.
+
+    setup_client() pre-creates the semaphore for production lifespans; lazy
+    creation here keeps unit tests that patch only `client` working without
+    forcing every test to call setup_client.
+    """
+    global _request_semaphore
+    if _request_semaphore is None:
+        _request_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_REQUESTS)
+    return _request_semaphore
+
+
 async def _post(path: str, context: str, **kwargs: Any) -> Any:
     """POST to the data API with unified error handling."""
-    try:
-        resp = await _get_client().post(path, **kwargs)
-        resp.raise_for_status()
-    except httpx.HTTPError as exc:
-        msg = f"Data backend unavailable for {context}"
-        raise RuntimeError(msg) from exc
-    return resp.json()
+    async with _get_semaphore():
+        try:
+            resp = await _get_client().post(path, **kwargs)
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            msg = f"Data backend unavailable for {context}"
+            raise RuntimeError(msg) from exc
+        return resp.json()
 
 
 async def _get(path: str, context: str, **kwargs: Any) -> Any:
     """GET from the data API with unified error handling."""
-    try:
-        resp = await _get_client().get(path, **kwargs)
-        resp.raise_for_status()
-    except httpx.HTTPError as exc:
-        msg = f"Data backend unavailable for {context}"
-        raise RuntimeError(msg) from exc
-    return resp.json()
+    async with _get_semaphore():
+        try:
+            resp = await _get_client().get(path, **kwargs)
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            msg = f"Data backend unavailable for {context}"
+            raise RuntimeError(msg) from exc
+        return resp.json()
 
 
 async def scan_market(

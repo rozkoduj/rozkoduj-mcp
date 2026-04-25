@@ -23,19 +23,32 @@ async def compare(
     for sym in symbols:
         validate_str(sym, "symbol")
 
-    analyses = await asyncio.gather(*(scanner.analyze(sym, interval) for sym in symbols))
+    raw = await asyncio.gather(
+        *(scanner.analyze(sym, interval) for sym in symbols),
+        return_exceptions=True,
+    )
 
-    return [
-        {
-            "symbol": data.get("symbol", sym),
-            "exchange": data.get("exchange", ""),
-            "recommendation": data.get("summary", {}).get("recommendation", "NEUTRAL"),
-            "rsi": data.get("indicators", {}).get("RSI"),
-            "macd": data.get("indicators", {}).get("macd"),
-            "macd_signal": data.get("indicators", {}).get("macd_signal"),
-            "adx": data.get("indicators", {}).get("ADX"),
-            "oscillators": data.get("oscillators", {}),
-            "moving_averages": data.get("moving_averages", {}),
-        }
-        for sym, data in zip(symbols, analyses, strict=True)
-    ]
+    rows: list[dict[str, Any]] = []
+    for sym, data in zip(symbols, raw, strict=True):
+        if isinstance(data, BaseException):
+            rows.append(
+                {
+                    "symbol": sym,
+                    "error": "upstream_unavailable",
+                }
+            )
+            continue
+        rows.append(
+            {
+                "symbol": data.get("symbol", sym),
+                "exchange": data.get("exchange", ""),
+                "recommendation": data.get("summary", {}).get("recommendation", "NEUTRAL"),
+                "rsi": data.get("indicators", {}).get("RSI"),
+                "macd": data.get("indicators", {}).get("macd"),
+                "macd_signal": data.get("indicators", {}).get("macd_signal"),
+                "adx": data.get("indicators", {}).get("ADX"),
+                "oscillators": data.get("oscillators", {}),
+                "moving_averages": data.get("moving_averages", {}),
+            }
+        )
+    return rows

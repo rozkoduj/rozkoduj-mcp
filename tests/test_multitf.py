@@ -79,3 +79,31 @@ class TestMultitf:
         result = await multitf("BTCUSDT", timeframes=["1d"])
 
         assert result["analysis"][0]["direction"] == "BUY"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_partial_failure_drops_failed_timeframes(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(
+            side_effect=[
+                mock_analysis("BUY"),
+                RuntimeError("upstream rate limited"),
+                mock_analysis("BUY"),
+                RuntimeError("upstream rate limited"),
+                mock_analysis("SELL"),
+            ]
+        )
+
+        result = await multitf("BTCUSDT")
+
+        assert len(result["analysis"]) == 3
+        assert len(result["skipped"]) == 2
+        assert {entry["timeframe"] for entry in result["skipped"]} == {"1h", "1d"}
+        assert result["alignment"]["score"] == "2/3"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.tools.multitf.scanner")
+    async def test_all_fail_raises(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(side_effect=RuntimeError("upstream down"))
+
+        with pytest.raises(RuntimeError, match="No timeframe data available"):
+            await multitf("BTCUSDT", timeframes=["1d"])
