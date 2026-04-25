@@ -74,6 +74,65 @@ _FIELDS: list[dict[str, str]] = [
     {"id": "industry", "name": "Industry", "category": "classification"},
 ]
 
+# Data freshness contract - documented for AI agents reading rozkoduj://freshness-contract.
+_FRESHNESS_CONTRACT: dict[str, object] = {
+    "version": 1,
+    "summary": (
+        "Every tool response carries data_date, freshness, staleness_seconds, and "
+        "fetched_at so agents can reason about how stale the underlying data is "
+        "before acting on it."
+    ),
+    "fields": [
+        {
+            "name": "data_date",
+            "type": "string | null",
+            "format": "YYYY-MM-DD",
+            "description": (
+                "Source date of the underlying market data. Null when the data does "
+                "not have a discrete snapshot date (e.g. a malformed upstream row)."
+            ),
+        },
+        {
+            "name": "freshness",
+            "type": "string",
+            "values": ["LIVE", "RECENT", "STALE", "UNKNOWN"],
+            "description": (
+                "Categorical bucket for data_date. LIVE = today (<= 1 day). "
+                "RECENT = within 5 days (covers weekends and holidays). "
+                "STALE = older than 5 days. UNKNOWN = data_date is null or invalid."
+            ),
+        },
+        {
+            "name": "staleness_seconds",
+            "type": "integer | null",
+            "description": (
+                "Seconds elapsed since UTC midnight of data_date. Null when "
+                "data_date is unknown. Use this for numeric reasoning instead of "
+                "parsing the freshness string."
+            ),
+        },
+        {
+            "name": "fetched_at",
+            "type": "string",
+            "format": "ISO 8601 UTC (YYYY-MM-DDTHH:MM:SSZ)",
+            "description": (
+                "Timestamp when the API generated this response. Distinct from "
+                "data_date - useful for cache invalidation and request tracing."
+            ),
+        },
+    ],
+    "list_endpoints": (
+        "Tools that return a list (scan) carry data_date and freshness on each "
+        "item rather than at the top level."
+    ),
+    "guidance_for_agents": (
+        "If freshness is STALE or UNKNOWN, surface that to the user before "
+        "presenting numbers as current. Prefer LIVE data when multiple sources "
+        "are available."
+    ),
+}
+
+
 # Filter operators for scan tool.
 _OPERATORS: list[dict[str, str]] = [
     {"id": "greater", "name": "Greater than", "example": "RSI > 70"},
@@ -92,6 +151,7 @@ _OPERATORS: list[dict[str, str]] = [
 _MARKETS_JSON = json.dumps(_MARKETS, indent=2)
 _FIELDS_JSON = json.dumps(_FIELDS, indent=2)
 _OPERATORS_JSON = json.dumps(_OPERATORS, indent=2)
+_FRESHNESS_CONTRACT_JSON = json.dumps(_FRESHNESS_CONTRACT, indent=2)
 
 
 @mcp.resource("rozkoduj://markets", name="Available markets", mime_type="application/json")
@@ -110,3 +170,13 @@ def get_fields() -> str:
 def get_operators() -> str:
     """Filter operators for use with scan tool filters."""
     return _OPERATORS_JSON
+
+
+@mcp.resource(
+    "rozkoduj://freshness-contract",
+    name="Data freshness contract",
+    mime_type="application/json",
+)
+def get_freshness_contract() -> str:
+    """Schema contract for the data_date / freshness / staleness_seconds / fetched_at fields."""
+    return _FRESHNESS_CONTRACT_JSON

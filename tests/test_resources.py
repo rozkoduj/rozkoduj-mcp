@@ -2,7 +2,12 @@
 
 import json
 
-from rozkoduj_mcp.resources import get_fields, get_markets, get_operators
+from rozkoduj_mcp.resources import (
+    get_fields,
+    get_freshness_contract,
+    get_markets,
+    get_operators,
+)
 
 
 class TestResources:
@@ -54,3 +59,21 @@ class TestResources:
             assert "id" in op
             assert "name" in op
             assert "example" in op
+
+    def test_freshness_contract_returns_valid_json(self) -> None:
+        data = json.loads(get_freshness_contract())
+        assert isinstance(data, dict)
+        assert data["version"] == 1
+        assert "summary" in data
+        assert "fields" in data
+        assert "guidance_for_agents" in data
+
+    def test_freshness_contract_documents_all_fields(self) -> None:
+        data = json.loads(get_freshness_contract())
+        names = {f["name"] for f in data["fields"]}
+        assert names == {"data_date", "freshness", "staleness_seconds", "fetched_at"}
+
+    def test_freshness_contract_lists_freshness_values(self) -> None:
+        data = json.loads(get_freshness_contract())
+        freshness_field = next(f for f in data["fields"] if f["name"] == "freshness")
+        assert set(freshness_field["values"]) == {"LIVE", "RECENT", "STALE", "UNKNOWN"}
