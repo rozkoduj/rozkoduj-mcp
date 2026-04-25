@@ -126,7 +126,7 @@ async def fundamentals(symbol: str) -> dict[str, Any]:
 
 
 async def buzz(query: str, lang: str = "en", wiki_article: str | None = None) -> dict[str, Any]:
-    """Get attention signal: news count + Wikipedia pageview trend."""
+    """Get attention signal: news count + optional pageview trend."""
     params: dict[str, str | int] = {"query": query, "lang": lang}
     if wiki_article:
         params["wiki_article"] = wiki_article
