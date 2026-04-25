@@ -1,4 +1,4 @@
-"""MCP tool: per-ticker attention signal from news and Wikipedia."""
+"""MCP tool: per-ticker attention signal."""
 
 from typing import Any
 
@@ -15,10 +15,9 @@ async def buzz(
 ) -> dict[str, Any]:
     """Get attention signal for any ticker or topic - globally, in any language.
 
-    Uses Google News headline count and Wikipedia pageview spike detection.
+    Uses headline count to gauge attention level (HIGH, MEDIUM, or LOW).
     Set lang='pl' for Polish news, lang='fr' for French, etc.
-    Provide wiki_article (e.g. 'Bitcoin', 'CD_Projekt') for pageview tracking.
-    Returns attention level: HIGH, MEDIUM, or LOW.
+    Optionally pass wiki_article (e.g. 'Bitcoin', 'CD_Projekt') for pageview spike data.
     """
     validate_str(query, "query")
     validate_str(lang, "lang")
