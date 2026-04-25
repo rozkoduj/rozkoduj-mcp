@@ -35,16 +35,25 @@ async def multitf(
         msg = "timeframes must contain at most 10 entries"
         raise ValueError(msg)
 
-    all_data = await asyncio.gather(*(scanner.analyze(symbol, tf) for tf in tfs))
+    raw = await asyncio.gather(
+        *(scanner.analyze(symbol, tf) for tf in tfs),
+        return_exceptions=True,
+    )
 
     analyses: list[dict[str, Any]] = []
     directions: list[str] = []
+    skipped: list[dict[str, str]] = []
+    first_ok: dict[str, Any] | None = None
 
-    for tf, data in zip(tfs, all_data, strict=True):
+    for tf, data in zip(tfs, raw, strict=True):
+        if isinstance(data, BaseException):
+            skipped.append({"timeframe": tf, "reason": "upstream_unavailable"})
+            continue
+        if first_ok is None:
+            first_ok = data
         rec = data.get("summary", {}).get("recommendation", "NEUTRAL")
         direction = _classify(rec)
         directions.append(direction)
-
         analyses.append(
             {
                 "timeframe": tf,
@@ -55,17 +64,21 @@ async def multitf(
             }
         )
 
+    if not analyses:
+        msg = f"No timeframe data available for {symbol}"
+        raise RuntimeError(msg)
+
     counts = Counter(directions)
     top_direction, top_count = counts.most_common(1)[0]
 
-    first = all_data[0]
     return {
-        "symbol": first.get("symbol", symbol),
-        "exchange": first.get("exchange", ""),
+        "symbol": (first_ok or {}).get("symbol", symbol),
+        "exchange": (first_ok or {}).get("exchange", ""),
         "analysis": analyses,
         "alignment": {
             "direction": top_direction,
-            "score": f"{top_count}/{len(tfs)}",
+            "score": f"{top_count}/{len(analyses)}",
             "detail": dict(counts),
         },
+        "skipped": skipped,
     }

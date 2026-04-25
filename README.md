@@ -173,6 +173,7 @@ Same pattern works for any market question:
 | Resource | `rozkoduj://markets` | Available markets with IDs |
 | Resource | `rozkoduj://fields` | Screening fields by category |
 | Resource | `rozkoduj://operators` | Filter operators for scan |
+| Resource | `rozkoduj://freshness-contract` | Schema for `data_date` / `freshness` / `staleness_seconds` / `fetched_at` |
 | Prompt | `morning_briefing` | Daily overview: regime, movers, calendar |
 | Prompt | `deep_dive(symbol)` | Full analysis: all tools combined |
 | Prompt | `find_opportunities(market)` | Multi-screen opportunity scan |
