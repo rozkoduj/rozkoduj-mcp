@@ -34,7 +34,10 @@ mcp = FastMCP(
         "'calendar' for economic events, 'smart_screen' for preset screens "
         "(unusual_volume, oversold_bounce, breakout, momentum, dividend), "
         "'movers' for top gainers/losers, 'compare' for multi-symbol comparison, "
-        "'multitf' for multi-timeframe analysis."
+        "'multitf' for multi-timeframe analysis. "
+        "Every response carries a data freshness contract (data_date, freshness, "
+        "staleness_seconds, fetched_at) - read the rozkoduj://freshness-contract "
+        "resource for the full schema and reasoning guidance."
     ),
     host="0.0.0.0",
     stateless_http=True,
