@@ -55,3 +55,21 @@ class TestCompare:
     async def test_empty_symbols(self) -> None:
         with pytest.raises(ValueError, match="at least 1"):
             await compare([])
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.tools.compare.scanner")
+    async def test_partial_failure_marks_failed_symbols(self, mock_scanner: MagicMock) -> None:
+        mock_scanner.analyze = AsyncMock(
+            side_effect=[
+                mock_analysis("BUY"),
+                RuntimeError("upstream rate limited"),
+                mock_analysis("SELL"),
+            ]
+        )
+
+        result = await compare(["BTCUSDT", "ETHUSDT", "SOLUSDT"])
+
+        assert len(result) == 3
+        assert result[0]["recommendation"] == "BUY"
+        assert result[1] == {"symbol": "ETHUSDT", "error": "upstream_unavailable"}
+        assert result[2]["recommendation"] == "SELL"
