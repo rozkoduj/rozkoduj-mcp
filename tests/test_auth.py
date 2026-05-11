@@ -1,9 +1,7 @@
 """Tests for rozkoduj_mcp.auth - JWKS-based JWT verification."""
 
 import base64
-import os
 import time
-from collections.abc import Iterator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,12 +14,15 @@ from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.server.auth.provider import AccessToken
 
 from rozkoduj_mcp.auth import (
+    AUDIENCE,
+    ISSUER,
+    JWKS_URI,
+    REQUIRED_SCOPES,
     JWKSTokenVerifier,
     ScopeRequiredError,
-    auth_from_env,
     current_scopes,
     current_token_string,
-    is_auth_active,
+    default_auth,
     requires_scope,
 )
 
@@ -213,78 +214,21 @@ class TestJWKSFetch:
             assert await verifier.verify_token(_sign(private)) is None
 
 
-@pytest.fixture
-def clean_auth_env() -> Iterator[None]:
-    """Snapshot and restore MCP_AUTH_* env around each test."""
-    prefix = "MCP_AUTH_"
-    saved = {k: v for k, v in os.environ.items() if k.startswith(prefix)}
-    for k in list(os.environ):
-        if k.startswith(prefix):
-            del os.environ[k]
-    try:
-        yield
-    finally:
-        for k in list(os.environ):
-            if k.startswith(prefix):
-                del os.environ[k]
-        os.environ.update(saved)
-
-
-class TestAuthFromEnv:
-    def test_disabled_by_default(self, clean_auth_env: None) -> None:
-        assert auth_from_env() is None
-
-    def test_disabled_when_explicitly_false(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "false"
-        assert auth_from_env() is None
-
-    def test_enabled_returns_pair(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-        os.environ["MCP_AUTH_ISSUER"] = "https://rozkoduj.com"
-        os.environ["MCP_AUTH_AUDIENCE"] = "https://mcp.rozkoduj.com"
-        result = auth_from_env()
-        assert result is not None
-        verifier, settings = result
-        assert verifier._issuer == "https://rozkoduj.com"
-        assert verifier._jwks_uri == "https://rozkoduj.com/jwks"
-        assert settings.required_scopes == ["mcp:read"]
-
-    def test_jwks_uri_override(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-        os.environ["MCP_AUTH_ISSUER"] = "https://rozkoduj.com"
-        os.environ["MCP_AUTH_AUDIENCE"] = "https://mcp.rozkoduj.com"
-        os.environ["MCP_AUTH_JWKS_URI"] = "https://rozkoduj.com/api/auth/jwks"
-        result = auth_from_env()
-        assert result is not None
-        assert result[0]._jwks_uri == "https://rozkoduj.com/api/auth/jwks"
-
-    def test_custom_scopes(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-        os.environ["MCP_AUTH_ISSUER"] = "https://rozkoduj.com"
-        os.environ["MCP_AUTH_AUDIENCE"] = "https://mcp.rozkoduj.com"
-        os.environ["MCP_AUTH_SCOPES"] = "mcp:read mcp:write"
-        result = auth_from_env()
-        assert result is not None
-        assert result[1].required_scopes == ["mcp:read", "mcp:write"]
+class TestDefaultAuth:
+    def test_wires_canonical_endpoints(self) -> None:
+        verifier, settings = default_auth()
+        assert verifier._issuer == ISSUER
+        assert verifier._audience == AUDIENCE
+        assert verifier._jwks_uri == JWKS_URI
+        assert settings.required_scopes == REQUIRED_SCOPES
+        assert str(settings.issuer_url).rstrip("/") == ISSUER.rstrip("/")
+        assert str(settings.resource_server_url).rstrip("/") == AUDIENCE.rstrip("/")
 
 
 def _bind_user(*, scopes: list[str], token: str = "tok") -> Any:  # noqa: S107
     """Bind an AuthenticatedUser to the auth context. Returns the reset handle."""
     user = AuthenticatedUser(AccessToken(token=token, client_id="cli", scopes=scopes))
     return auth_context_var.set(user)
-
-
-class TestAuthActiveFlag:
-    def test_inactive_by_default(self, clean_auth_env: None) -> None:
-        assert is_auth_active() is False
-
-    def test_inactive_when_false(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "false"
-        assert is_auth_active() is False
-
-    def test_active_when_true(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-        assert is_auth_active() is True
 
 
 class TestCurrentTokenAccessors:
@@ -303,17 +247,7 @@ class TestCurrentTokenAccessors:
 
 class TestRequiresScope:
     @pytest.mark.anyio
-    async def test_noop_when_auth_inactive(self, clean_auth_env: None) -> None:
-        @requires_scope("mcp:premium")
-        async def call() -> str:
-            return "ok"
-
-        assert await call() == "ok"
-
-    @pytest.mark.anyio
-    async def test_denies_when_active_and_missing_scope(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-
+    async def test_denies_when_scope_missing(self) -> None:
         @requires_scope("mcp:premium")
         async def call() -> str:
             return "ok"
@@ -327,9 +261,7 @@ class TestRequiresScope:
             auth_context_var.reset(reset)
 
     @pytest.mark.anyio
-    async def test_denies_anonymous_when_active(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-
+    async def test_denies_anonymous(self) -> None:
         @requires_scope("mcp:premium")
         async def call() -> str:
             return "ok"
@@ -338,9 +270,7 @@ class TestRequiresScope:
             await call()
 
     @pytest.mark.anyio
-    async def test_allows_when_scope_present(self, clean_auth_env: None) -> None:
-        os.environ["MCP_AUTH_REQUIRED"] = "true"
-
+    async def test_allows_when_scope_present(self) -> None:
         @requires_scope("mcp:premium")
         async def call(x: int) -> int:
             return x * 2
