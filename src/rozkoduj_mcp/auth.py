@@ -16,7 +16,6 @@ from typing import Any, ParamSpec, TypeVar, cast
 
 import httpx
 import jwt
-from jwt.algorithms import RSAAlgorithm
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
@@ -24,6 +23,10 @@ from pydantic import AnyHttpUrl
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+# Algorithms accepted in inbound access tokens. EdDSA is the modern default
+# for issuers like better-auth; RS256/ES256 stay supported for legacy AS.
+_ACCEPTED_ALGS = ["EdDSA", "RS256", "ES256"]
 
 
 class JWKSTokenVerifier(TokenVerifier):
@@ -63,7 +66,9 @@ class JWKSTokenVerifier(TokenVerifier):
         jwk = self._jwks_keys.get(kid)
         if jwk is None:
             return None
-        return RSAAlgorithm.from_jwk(jwk)
+        # PyJWK auto-selects the algorithm class from `kty` so RSA, OKP
+        # (Ed25519/Ed448), and EC keys all work without per-type branching.
+        return jwt.PyJWK(jwk).key
 
     async def verify_token(self, token: str) -> AccessToken | None:
         try:
@@ -77,7 +82,7 @@ class JWKSTokenVerifier(TokenVerifier):
             payload = jwt.decode(
                 token,
                 key=key,
-                algorithms=["RS256"],
+                algorithms=_ACCEPTED_ALGS,
                 issuer=self._issuer,
                 audience=self._audience,
             )

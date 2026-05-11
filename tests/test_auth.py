@@ -171,6 +171,60 @@ class TestVerifyToken:
         verifier = _make_verifier(jwk)
         assert await verifier.verify_token("not-a-jwt") is None
 
+    @pytest.mark.anyio
+    async def test_accepts_eddsa_ed25519_token(self) -> None:
+        """Issuers like better-auth default to EdDSA/Ed25519 over RS256."""
+        import base64 as _b64
+
+        from cryptography.hazmat.primitives import serialization as _ser
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PrivateKey,
+        )
+
+        ed_priv = Ed25519PrivateKey.generate()
+        ed_pub = ed_priv.public_key().public_bytes(
+            encoding=_ser.Encoding.Raw,
+            format=_ser.PublicFormat.Raw,
+        )
+        ed_jwk: dict[str, Any] = {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "kid": "ed-kid",
+            "use": "sig",
+            "alg": "EdDSA",
+            "x": _b64.urlsafe_b64encode(ed_pub).decode().rstrip("="),
+        }
+        verifier = JWKSTokenVerifier(
+            jwks_uri="https://issuer.example/jwks",
+            issuer=_ISSUER,
+            audience=_AUDIENCE,
+        )
+        verifier._jwks_keys = {"ed-kid": ed_jwk}
+        verifier._jwks_fetched_at = time.monotonic()
+
+        pem = ed_priv.private_bytes(
+            encoding=_ser.Encoding.PEM,
+            format=_ser.PrivateFormat.PKCS8,
+            encryption_algorithm=_ser.NoEncryption(),
+        )
+        now = int(time.time())
+        token = jwt.encode(
+            {
+                "iss": _ISSUER,
+                "aud": _AUDIENCE,
+                "sub": "user-1",
+                "scope": "mcp:read",
+                "iat": now,
+                "exp": now + 3600,
+            },
+            pem,
+            algorithm="EdDSA",
+            headers={"kid": "ed-kid"},
+        )
+        result = await verifier.verify_token(token)
+        assert result is not None
+        assert result.scopes == ["mcp:read"]
+
 
 class TestJWKSFetch:
     @pytest.mark.anyio
