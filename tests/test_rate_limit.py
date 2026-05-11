@@ -219,6 +219,22 @@ class TestSupabaseUsageStoreCounting:
             await store.aclose()
 
     @pytest.mark.anyio
+    async def test_malformed_content_range_returns_zero(self) -> None:
+        """Garbled Content-Range header must fail open, not 500 the request."""
+        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
+        mock_resp = MagicMock()
+        mock_resp.headers = {"content-range": "not-a-number"}
+        mock_resp.raise_for_status = MagicMock()
+        store._client.get = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
+        try:
+            count = await store.count_recent(
+                user_id=None, ip="1.2.3.4", since_iso="2026-01-01T00:00:00+00:00"
+            )
+            assert count == 0
+        finally:
+            await store.aclose()
+
+    @pytest.mark.anyio
     async def test_log_posts_to_service_usage(self) -> None:
         store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
         mock_resp = MagicMock()

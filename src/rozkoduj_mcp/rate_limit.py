@@ -208,7 +208,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # so a no-verify decode is safe to read the remaining claims.
         try:
             payload: dict[str, Any] = jwt.decode(token, options={"verify_signature": False})
-        except jwt.PyJWTError:
+        except jwt.PyJWTError:  # pragma: no cover - verify_token already cleared sig + structure
             return access_token.client_id or None, "free"
         sub = payload.get("sub")
         user_id = str(sub) if sub else (access_token.client_id or None)
