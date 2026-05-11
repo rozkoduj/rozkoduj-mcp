@@ -30,10 +30,12 @@ def _run_http() -> None:
     from starlette.applications import Starlette
     from starlette.middleware import Middleware
     from starlette.requests import Request
-    from starlette.responses import PlainTextResponse
+    from starlette.responses import JSONResponse, PlainTextResponse
     from starlette.routing import Mount, Route
 
+    from rozkoduj_mcp.auth import AUDIENCE, ISSUER, default_auth
     from rozkoduj_mcp.logging import RequestLoggingMiddleware
+    from rozkoduj_mcp.rate_limit import RateLimitMiddleware, default_store
     from rozkoduj_mcp.server import mcp
     from rozkoduj_mcp.services import scanner
 
@@ -43,6 +45,39 @@ def _run_http() -> None:
     async def health(request: Request) -> PlainTextResponse:
         return PlainTextResponse("ok")
 
+    # SEP-1960 - lightweight server discovery manifest. External MCP
+    # clients (Claude Desktop, Cursor, others) probe `/.well-known/mcp.json`
+    # to auto-detect transport, capabilities, and the OAuth authorization
+    # server without prior configuration. The protected-resource metadata
+    # (RFC 9728) is still mounted by the FastMCP transport at
+    # `/.well-known/oauth-protected-resource/mcp` for the OAuth handshake.
+    async def well_known_mcp(request: Request) -> JSONResponse:
+        return JSONResponse(
+            {
+                "mcp_version": "2025-11-25",
+                "endpoints": [
+                    {
+                        "url": AUDIENCE,
+                        "transport": "streamable-http",
+                        "capabilities": ["tools", "resources", "prompts"],
+                        "auth": {
+                            "type": "oauth2",
+                            "authorization_server": ISSUER,
+                        },
+                    }
+                ],
+            },
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
+
+    # Persistent, tier-aware rate limit shared across Cloud Run replicas.
+    # Wired only when Supabase is configured - local dev / tests stay open.
+    usage_store = default_store()
+    verifier, _ = default_auth()
+
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
         scanner.setup_client(os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com"))
@@ -51,14 +86,21 @@ def _run_http() -> None:
                 yield
             finally:
                 await scanner.close_client()
+                if usage_store is not None:
+                    await usage_store.aclose()
+
+    middleware: list[Middleware] = [Middleware(RequestLoggingMiddleware)]
+    if usage_store is not None:
+        middleware.append(Middleware(RateLimitMiddleware, store=usage_store, verifier=verifier))
 
     app = Starlette(
         routes=[
             Route("/robots.txt", robots_txt),
             Route("/health", health),
+            Route("/.well-known/mcp.json", well_known_mcp),
             Mount("/", app=mcp.streamable_http_app()),
         ],
-        middleware=[Middleware(RequestLoggingMiddleware)],
+        middleware=middleware,
         lifespan=lifespan,
     )
 
