@@ -1,6 +1,6 @@
 [project]
 name = "rozkoduj-mcp"
-version = "2026.4.25"
+version = "2026.5.11"
 description = "Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex."
 readme = "README.md"
 license = {text = "MIT"}
@@ -24,8 +24,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "mcp[cli]>=1.26.0",
+    "mcp[cli]>=1.27.1",
     "httpx>=0.28.0",
+    "pyjwt[crypto]>=2.10.0",
 ]
 
 [project.scripts]

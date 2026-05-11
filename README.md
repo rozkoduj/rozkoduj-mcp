@@ -165,6 +165,14 @@ Same pattern works for any market question:
 | `buzz` | News attention signal for any ticker in any language. |
 | `calendar` | Upcoming economic events with actual vs forecast vs previous. |
 
+### Strategies & content
+
+| Tool | What it does |
+| ---- | ------------ |
+| `list_strategies` | Browse Rozkoduj's catalog of published trading strategies. Sort by Sharpe / Sortino / CAGR, filter by family. |
+| `strategy_details` | Drill into a single strategy by slug or `algorithm_uid` - full metrics, sparkline, params, data range. |
+| `search_articles` | Keyword + meaning search across the Rozkoduj blog. Returns `slug` + `locale` for citation. |
+
 <details>
 <summary><b>Resources & Prompts</b></summary>
 

@@ -1,4 +1,4 @@
-"""Structured request logging middleware for Cloud Run."""
+"""Structured request logging middleware."""
 
 import json
 import sys
@@ -15,7 +15,7 @@ _SKIP_PATHS: frozenset[str] = frozenset({"/health", "/robots.txt"})
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Log every request as structured JSON to stdout (parsed by Cloud Logging)."""
+    """Log every request as structured JSON to stdout."""
 
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
