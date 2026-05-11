@@ -412,6 +412,57 @@ class TestDecodeScanner:
             await decode(symbol="AAPL")
 
 
+class TestListStrategies:
+    """Tests for list_strategies()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_params(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import list_strategies
+
+        mock_client.get = AsyncMock(return_value=_mock_response({"items": [], "total": 0}))
+
+        await list_strategies(
+            status="active", sort="sharpe_desc", visibility="public", limit=10, offset=0
+        )
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["status"] == "active"
+        assert params["sort"] == "sharpe_desc"
+        assert params["visibility"] == "public"
+        assert params["limit"] == 10
+        assert params["offset"] == 0
+        assert "family" not in params
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_family_included_when_set(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import list_strategies
+
+        mock_client.get = AsyncMock(return_value=_mock_response({"items": [], "total": 0}))
+
+        await list_strategies(family="ma_cross")
+
+        params = mock_client.get.call_args[1]["params"]
+        assert params["family"] == "ma_cross"
+
+
+class TestStrategyDetails:
+    """Tests for strategy_details()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_calls_correct_path(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import strategy_details
+
+        mock_client.get = AsyncMock(return_value=_mock_response({"slug": "ma-cross-ema"}))
+
+        await strategy_details("ma-cross-ema")
+
+        url = mock_client.get.call_args[0][0]
+        assert url == "/strategies/ma-cross-ema"
+
+
 class TestSearchArticles:
     """Tests for search_articles()."""
 
