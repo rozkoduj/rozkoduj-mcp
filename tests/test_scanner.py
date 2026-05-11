@@ -213,14 +213,14 @@ class TestBuzz:
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_params(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(
-            return_value=_mock_response({"query": "JSW", "attention": "HIGH"})
+            return_value=_mock_response({"query": "AAPL", "attention": "HIGH"})
         )
 
-        result = await buzz(query="JSW akcje", lang="pl", wiki_article="JSW_SA")
+        result = await buzz(query="AAPL stock", lang="en", wiki_article="Apple_Inc")
 
         params = mock_client.get.call_args[1]["params"]
-        assert params["query"] == "JSW akcje"
-        assert params["lang"] == "pl"
+        assert params["query"] == "AAPL stock"
+        assert params["lang"] == "en"
         assert result["attention"] == "HIGH"
 
     @pytest.mark.anyio
@@ -376,12 +376,12 @@ class TestDecodeScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_with_non_en_lang(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "JSW"}))
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "ASML.AS"}))
 
-        await decode(symbol="JSW", lang="pl")
+        await decode(symbol="ASML.AS", lang="de")
 
         params = mock_client.get.call_args[1]["params"]
-        assert params["lang"] == "pl"
+        assert params["lang"] == "de"
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
@@ -410,3 +410,63 @@ class TestDecodeScanner:
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await decode(symbol="AAPL")
+
+
+class TestSearchArticles:
+    """Tests for search_articles()."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_payload(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import search_articles
+
+        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+
+        await search_articles(query="momentum", locale="en", limit=3)
+
+        payload = mock_client.post.call_args[1]["json"]
+        assert payload["query"] == "momentum"
+        assert payload["locale"] == "en"
+        assert payload["limit"] == 3
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_locale_omitted_when_none(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import search_articles
+
+        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+
+        await search_articles(query="q")
+
+        payload = mock_client.post.call_args[1]["json"]
+        assert "locale" not in payload
+
+
+class TestSearchKnowledge:
+    """Tests for search_knowledge() - requires INTERNAL_API_KEY."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_internal_header(
+        self,
+        mock_client: AsyncMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        monkeypatch.setenv("INTERNAL_API_KEY", "secret")
+        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+
+        await search_knowledge(query="risk", limit=2)
+
+        kwargs = mock_client.post.call_args[1]
+        assert kwargs["json"] == {"query": "risk", "limit": 2}
+        assert kwargs["headers"] == {"X-Internal-Key": "secret"}
+
+    @pytest.mark.anyio
+    async def test_raises_without_internal_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
+        with pytest.raises(RuntimeError, match="INTERNAL_API_KEY not set"):
+            await search_knowledge(query="x")
