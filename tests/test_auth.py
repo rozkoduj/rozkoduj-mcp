@@ -280,3 +280,23 @@ class TestRequiresScope:
             assert await call(3) == 6
         finally:
             auth_context_var.reset(reset)
+
+
+class TestScopeRequiredErrorContent:
+    """The error message is what FastMCP surfaces to the calling LLM, so it
+    has to carry both the actionable login URL and the structured fields
+    a chat UI can hook into for a "Log in to unlock" CTA.
+    """
+
+    def test_known_scope_resolves_to_premium_tier(self) -> None:
+        err = ScopeRequiredError("mcp:knowledge:read")
+        assert err.scope == "mcp:knowledge:read"
+        assert err.tier_required == "premium"
+        assert err.login_url == "https://rozkoduj.com/login"
+        assert "log in at https://rozkoduj.com/login" in str(err).lower()
+        assert "premium tier" in str(err).lower()
+
+    def test_unknown_scope_falls_back_to_premium(self) -> None:
+        err = ScopeRequiredError("mcp:future:write")
+        assert err.tier_required == "premium"
+        assert "auth_required" in str(err)
