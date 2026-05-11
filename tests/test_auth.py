@@ -12,8 +12,19 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from mcp.server.auth.middleware.auth_context import auth_context_var
+from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
+from mcp.server.auth.provider import AccessToken
 
-from rozkoduj_mcp.auth import JWKSTokenVerifier, auth_from_env
+from rozkoduj_mcp.auth import (
+    JWKSTokenVerifier,
+    ScopeRequiredError,
+    auth_from_env,
+    current_scopes,
+    current_token_string,
+    is_auth_active,
+    requires_scope,
+)
 
 _ISSUER = "https://issuer.example"
 _AUDIENCE = "https://mcp.example"
@@ -258,3 +269,87 @@ class TestAuthFromEnv:
         result = auth_from_env()
         assert result is not None
         assert result[1].required_scopes == ["mcp:read", "mcp:write"]
+
+
+def _bind_user(*, scopes: list[str], token: str = "tok") -> Any:  # noqa: S107
+    """Bind an AuthenticatedUser to the auth context. Returns the reset handle."""
+    user = AuthenticatedUser(AccessToken(token=token, client_id="cli", scopes=scopes))
+    return auth_context_var.set(user)
+
+
+class TestAuthActiveFlag:
+    def test_inactive_by_default(self, clean_auth_env: None) -> None:
+        assert is_auth_active() is False
+
+    def test_inactive_when_false(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "false"
+        assert is_auth_active() is False
+
+    def test_active_when_true(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+        assert is_auth_active() is True
+
+
+class TestCurrentTokenAccessors:
+    def test_no_context_returns_none_and_empty(self) -> None:
+        assert current_token_string() is None
+        assert current_scopes() == frozenset()
+
+    def test_returns_bound_token_and_scopes(self) -> None:
+        reset = _bind_user(scopes=["a", "b"], token="xyz")  # noqa: S106
+        try:
+            assert current_token_string() == "xyz"
+            assert current_scopes() == frozenset({"a", "b"})
+        finally:
+            auth_context_var.reset(reset)
+
+
+class TestRequiresScope:
+    @pytest.mark.anyio
+    async def test_noop_when_auth_inactive(self, clean_auth_env: None) -> None:
+        @requires_scope("mcp:premium")
+        async def call() -> str:
+            return "ok"
+
+        assert await call() == "ok"
+
+    @pytest.mark.anyio
+    async def test_denies_when_active_and_missing_scope(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+
+        @requires_scope("mcp:premium")
+        async def call() -> str:
+            return "ok"
+
+        reset = _bind_user(scopes=["mcp:read"])
+        try:
+            with pytest.raises(ScopeRequiredError) as exc:
+                await call()
+            assert exc.value.scope == "mcp:premium"
+        finally:
+            auth_context_var.reset(reset)
+
+    @pytest.mark.anyio
+    async def test_denies_anonymous_when_active(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+
+        @requires_scope("mcp:premium")
+        async def call() -> str:
+            return "ok"
+
+        with pytest.raises(ScopeRequiredError):
+            await call()
+
+    @pytest.mark.anyio
+    async def test_allows_when_scope_present(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+
+        @requires_scope("mcp:premium")
+        async def call(x: int) -> int:
+            return x * 2
+
+        reset = _bind_user(scopes=["mcp:read", "mcp:premium"])
+        try:
+            assert await call(3) == 6
+        finally:
+            auth_context_var.reset(reset)

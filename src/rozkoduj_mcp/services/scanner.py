@@ -202,13 +202,25 @@ async def search_articles(query: str, locale: str | None = None, limit: int = 5)
     return await _post("/articles/search", "search articles", json=payload)  # type: ignore[no-any-return]
 
 
-def _internal_headers() -> dict[str, str]:
-    """Build the internal-auth header from ``INTERNAL_API_KEY``."""
-    key = os.environ.get("INTERNAL_API_KEY")
-    if not key:
-        msg = "INTERNAL_API_KEY not set"
-        raise RuntimeError(msg)
-    return {"X-Internal-Key": key}
+def _outbound_headers(*, internal_fallback: bool = False) -> dict[str, str]:
+    """Auth headers for downstream calls, preferring the caller's bearer token.
+
+    When a bearer token is bound to the current request, forward it so the
+    downstream resource server can apply its own access controls.
+    ``internal_fallback`` lets legacy paths that haven't been migrated to
+    end-user tokens fall back to a transport secret. Returns ``{}`` when
+    nothing is available; the downstream service decides how to respond.
+    """
+    from rozkoduj_mcp.auth import current_token_string
+
+    token = current_token_string()
+    if token is not None:
+        return {"Authorization": f"Bearer {token}"}
+    if internal_fallback:
+        key = os.environ.get("INTERNAL_API_KEY")
+        if key:
+            return {"X-Internal-Key": key}
+    return {}
 
 
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
@@ -217,5 +229,5 @@ async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
         "/knowledge/search",
         "search knowledge",
         json={"query": query, "limit": limit},
-        headers=_internal_headers(),
+        headers=_outbound_headers(internal_fallback=True),
     )

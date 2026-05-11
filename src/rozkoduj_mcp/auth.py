@@ -1,20 +1,29 @@
-"""OAuth 2.1 token verification for the resource server.
+"""OAuth 2.1 token verification and per-tool scope gating.
 
-Validates RS256 JWT access tokens against a remote JWKS. The JWKS is fetched
-lazily on first use and cached per process. Wiring lives in ``server.py`` and
-is gated by ``MCP_AUTH_REQUIRED`` so the server can run anonymously by default.
+Validates RS256 JWT access tokens against a remote JWKS (RFC 7517) and
+provides a ``requires_scope`` decorator that gates individual tools on
+the OAuth scopes carried by the inbound bearer token. The JWKS is fetched
+lazily on first use and cached per process. Wiring lives in ``server.py``
+and is gated by ``MCP_AUTH_REQUIRED`` so the server can run anonymously
+by default during the rollout.
 """
 
+import functools
 import os
 import time
-from typing import Any, cast
+from collections.abc import Awaitable, Callable
+from typing import Any, ParamSpec, TypeVar, cast
 
 import httpx
 import jwt
 from jwt.algorithms import RSAAlgorithm
+from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from pydantic import AnyHttpUrl
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class JWKSTokenVerifier(TokenVerifier):
@@ -103,7 +112,7 @@ def auth_from_env() -> tuple[JWKSTokenVerifier, AuthSettings] | None:
         MCP_AUTH_JWKS_URI   Defaults to <issuer>/jwks
         MCP_AUTH_SCOPES     Space-separated list (defaults to "mcp:read")
     """
-    if os.environ.get("MCP_AUTH_REQUIRED", "").lower() != "true":
+    if not is_auth_active():
         return None
 
     issuer = os.environ["MCP_AUTH_ISSUER"]
@@ -118,3 +127,62 @@ def auth_from_env() -> tuple[JWKSTokenVerifier, AuthSettings] | None:
         required_scopes=required_scopes,
     )
     return verifier, settings
+
+
+def is_auth_active() -> bool:
+    """Return True when token verification is enforced for this process."""
+    return os.environ.get("MCP_AUTH_REQUIRED", "").lower() == "true"
+
+
+def current_scopes() -> frozenset[str]:
+    """OAuth scopes from the bearer token bound to the current request.
+
+    Empty when the request is anonymous (no token or auth disabled).
+    """
+    token = get_access_token()
+    if token is None:
+        return frozenset()
+    return frozenset(token.scopes)
+
+
+def current_token_string() -> str | None:
+    """Raw bearer token string for the current request, when present.
+
+    Used by downstream calls to forward the caller's identity to other
+    resource servers rather than relying on a shared transport secret.
+    """
+    token = get_access_token()
+    if token is None:
+        return None
+    return token.token
+
+
+class ScopeRequiredError(PermissionError):
+    """Raised when the current request is missing a required OAuth scope."""
+
+    def __init__(self, scope: str) -> None:
+        super().__init__(f"missing required scope: {scope}")
+        self.scope = scope
+
+
+def requires_scope(
+    scope: str,
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+    """Gate a tool on an OAuth scope carried by the inbound bearer token.
+
+    No-op while ``MCP_AUTH_REQUIRED`` is unset so the server keeps serving
+    anonymously during the rollout. Once auth is enforced, calls without
+    the required scope raise ``ScopeRequiredError`` which the MCP layer
+    surfaces as a tool error.
+    """
+
+    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        @functools.wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            if is_auth_active() and scope not in current_scopes():
+                raise ScopeRequiredError(scope)
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
