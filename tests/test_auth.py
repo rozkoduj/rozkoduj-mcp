@@ -10,39 +10,47 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from mcp.server.auth.middleware.auth_context import auth_context_var
+from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
+from mcp.server.auth.provider import AccessToken
 
-from rozkoduj_mcp.auth import JWKSTokenVerifier, auth_from_env
+from rozkoduj_mcp.auth import (
+    JWKSTokenVerifier,
+    ScopeRequiredError,
+    auth_from_env,
+    current_scopes,
+    current_token_string,
+    is_auth_active,
+    requires_scope,
+)
 
 _ISSUER = "https://issuer.example"
 _AUDIENCE = "https://mcp.example"
 _KID = "test-kid"
 
 
-def _b64url_uint(n: int) -> str:
-    raw = n.to_bytes((n.bit_length() + 7) // 8, "big")
-    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
-
-
 @pytest.fixture(scope="module")
-def keypair() -> tuple[RSAPrivateKey, dict[str, Any]]:
-    """Generate one RSA keypair per module + matching JWK with kid."""
-    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    numbers = private.public_key().public_numbers()
+def keypair() -> tuple[Ed25519PrivateKey, dict[str, Any]]:
+    """Generate one Ed25519 keypair per module + matching JWK with kid."""
+    private = Ed25519PrivateKey.generate()
+    public_raw = private.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
     jwk: dict[str, Any] = {
-        "kty": "RSA",
+        "kty": "OKP",
+        "crv": "Ed25519",
         "kid": _KID,
         "use": "sig",
-        "alg": "RS256",
-        "n": _b64url_uint(numbers.n),
-        "e": _b64url_uint(numbers.e),
+        "alg": "EdDSA",
+        "x": base64.urlsafe_b64encode(public_raw).decode().rstrip("="),
     }
     return private, jwk
 
 
 def _sign(
-    private: RSAPrivateKey,
+    private: Ed25519PrivateKey,
     *,
     iss: str = _ISSUER,
     aud: str = _AUDIENCE,
@@ -51,7 +59,7 @@ def _sign(
     expires_in: int = 3600,
     kid: str | None = _KID,
 ) -> str:
-    """Create a signed JWT for testing."""
+    """Create an Ed25519-signed JWT for testing."""
     pem = private.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -68,7 +76,7 @@ def _sign(
         "exp": now + expires_in,
     }
     headers = {"kid": kid} if kid else {}
-    return jwt.encode(payload, pem, algorithm="RS256", headers=headers)
+    return jwt.encode(payload, pem, algorithm="EdDSA", headers=headers)
 
 
 def _make_verifier(jwk: dict[str, Any]) -> JWKSTokenVerifier:
@@ -85,7 +93,7 @@ def _make_verifier(jwk: dict[str, Any]) -> JWKSTokenVerifier:
 class TestVerifyToken:
     @pytest.mark.anyio
     async def test_accepts_valid_token(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -96,7 +104,7 @@ class TestVerifyToken:
         assert result.expires_at is not None
 
     @pytest.mark.anyio
-    async def test_scope_as_list(self, keypair: tuple[RSAPrivateKey, dict[str, Any]]) -> None:
+    async def test_scope_as_list(self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
         token = _sign(private, scope=["mcp:read", "mcp:write"])
@@ -106,7 +114,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_wrong_issuer(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -115,7 +123,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_wrong_audience(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -124,7 +132,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_expired_token(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -133,7 +141,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_token_with_no_kid(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -142,7 +150,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_unknown_kid(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -154,7 +162,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_garbage_token(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         _, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -164,7 +172,7 @@ class TestVerifyToken:
 class TestJWKSFetch:
     @pytest.mark.anyio
     async def test_fetches_jwks_on_first_call(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = JWKSTokenVerifier(
@@ -201,7 +209,7 @@ class TestJWKSFetch:
 
         with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
             # Use a valid-shaped JWT that requires JWKS lookup.
-            private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+            private = Ed25519PrivateKey.generate()
             assert await verifier.verify_token(_sign(private)) is None
 
 
@@ -258,3 +266,87 @@ class TestAuthFromEnv:
         result = auth_from_env()
         assert result is not None
         assert result[1].required_scopes == ["mcp:read", "mcp:write"]
+
+
+def _bind_user(*, scopes: list[str], token: str = "tok") -> Any:  # noqa: S107
+    """Bind an AuthenticatedUser to the auth context. Returns the reset handle."""
+    user = AuthenticatedUser(AccessToken(token=token, client_id="cli", scopes=scopes))
+    return auth_context_var.set(user)
+
+
+class TestAuthActiveFlag:
+    def test_inactive_by_default(self, clean_auth_env: None) -> None:
+        assert is_auth_active() is False
+
+    def test_inactive_when_false(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "false"
+        assert is_auth_active() is False
+
+    def test_active_when_true(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+        assert is_auth_active() is True
+
+
+class TestCurrentTokenAccessors:
+    def test_no_context_returns_none_and_empty(self) -> None:
+        assert current_token_string() is None
+        assert current_scopes() == frozenset()
+
+    def test_returns_bound_token_and_scopes(self) -> None:
+        reset = _bind_user(scopes=["a", "b"], token="xyz")  # noqa: S106
+        try:
+            assert current_token_string() == "xyz"
+            assert current_scopes() == frozenset({"a", "b"})
+        finally:
+            auth_context_var.reset(reset)
+
+
+class TestRequiresScope:
+    @pytest.mark.anyio
+    async def test_noop_when_auth_inactive(self, clean_auth_env: None) -> None:
+        @requires_scope("mcp:premium")
+        async def call() -> str:
+            return "ok"
+
+        assert await call() == "ok"
+
+    @pytest.mark.anyio
+    async def test_denies_when_active_and_missing_scope(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+
+        @requires_scope("mcp:premium")
+        async def call() -> str:
+            return "ok"
+
+        reset = _bind_user(scopes=["mcp:read"])
+        try:
+            with pytest.raises(ScopeRequiredError) as exc:
+                await call()
+            assert exc.value.scope == "mcp:premium"
+        finally:
+            auth_context_var.reset(reset)
+
+    @pytest.mark.anyio
+    async def test_denies_anonymous_when_active(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+
+        @requires_scope("mcp:premium")
+        async def call() -> str:
+            return "ok"
+
+        with pytest.raises(ScopeRequiredError):
+            await call()
+
+    @pytest.mark.anyio
+    async def test_allows_when_scope_present(self, clean_auth_env: None) -> None:
+        os.environ["MCP_AUTH_REQUIRED"] = "true"
+
+        @requires_scope("mcp:premium")
+        async def call(x: int) -> int:
+            return x * 2
+
+        reset = _bind_user(scopes=["mcp:read", "mcp:premium"])
+        try:
+            assert await call(3) == 6
+        finally:
+            auth_context_var.reset(reset)

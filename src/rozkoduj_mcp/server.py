@@ -79,10 +79,6 @@ import rozkoduj_mcp.tools.multitf as _multitf  # noqa: F401, E402
 import rozkoduj_mcp.tools.scan as _scan  # noqa: F401, E402
 import rozkoduj_mcp.tools.score as _score  # noqa: F401, E402
 import rozkoduj_mcp.tools.search_articles as _search_articles  # noqa: F401, E402
+import rozkoduj_mcp.tools.search_knowledge as _search_knowledge  # noqa: F401, E402
 import rozkoduj_mcp.tools.smart_screen as _smart_screen  # noqa: F401, E402
 import rozkoduj_mcp.tools.strategy_details as _strategy_details  # noqa: F401, E402
-
-# Auth-gated tool: only registered when an internal key is configured so it
-# doesn't surface in tools/list for anonymous clients.
-if os.environ.get("INTERNAL_API_KEY"):  # pragma: no cover
-    import rozkoduj_mcp.tools.search_knowledge as _search_knowledge  # noqa: F401
