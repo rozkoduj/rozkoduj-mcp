@@ -494,11 +494,11 @@ class TestSearchArticles:
 
 
 class TestSearchKnowledge:
-    """Tests for search_knowledge() - requires INTERNAL_API_KEY."""
+    """Tests for search_knowledge() outbound auth header behaviour."""
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_sends_internal_header(
+    async def test_falls_back_to_internal_key_for_anonymous(
         self,
         mock_client: AsyncMock,
         monkeypatch: pytest.MonkeyPatch,
@@ -515,9 +515,47 @@ class TestSearchKnowledge:
         assert kwargs["headers"] == {"X-Internal-Key": "secret"}
 
     @pytest.mark.anyio
-    async def test_raises_without_internal_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_prefers_caller_bearer_token(
+        self,
+        mock_client: AsyncMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from mcp.server.auth.middleware.auth_context import auth_context_var
+        from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
+        from mcp.server.auth.provider import AccessToken
+
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        monkeypatch.setenv("INTERNAL_API_KEY", "should-not-be-used")
+        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        user = AuthenticatedUser(
+            AccessToken(
+                token="caller-jwt",  # noqa: S106
+                client_id="cli",
+                scopes=["mcp:knowledge:read"],
+            )
+        )
+        reset = auth_context_var.set(user)
+        try:
+            await search_knowledge(query="x", limit=1)
+        finally:
+            auth_context_var.reset(reset)
+
+        assert mock_client.post.call_args[1]["headers"] == {"Authorization": "Bearer caller-jwt"}
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_sends_no_auth_when_nothing_available(
+        self,
+        mock_client: AsyncMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         from rozkoduj_mcp.services.scanner import search_knowledge
 
         monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
-        with pytest.raises(RuntimeError, match="INTERNAL_API_KEY not set"):
-            await search_knowledge(query="x")
+        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+
+        await search_knowledge(query="x")
+
+        assert mock_client.post.call_args[1]["headers"] == {}
