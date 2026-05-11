@@ -10,8 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from mcp.server.auth.middleware.auth_context import auth_context_var
 from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.server.auth.provider import AccessToken
@@ -31,29 +30,27 @@ _AUDIENCE = "https://mcp.example"
 _KID = "test-kid"
 
 
-def _b64url_uint(n: int) -> str:
-    raw = n.to_bytes((n.bit_length() + 7) // 8, "big")
-    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
-
-
 @pytest.fixture(scope="module")
-def keypair() -> tuple[RSAPrivateKey, dict[str, Any]]:
-    """Generate one RSA keypair per module + matching JWK with kid."""
-    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    numbers = private.public_key().public_numbers()
+def keypair() -> tuple[Ed25519PrivateKey, dict[str, Any]]:
+    """Generate one Ed25519 keypair per module + matching JWK with kid."""
+    private = Ed25519PrivateKey.generate()
+    public_raw = private.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
     jwk: dict[str, Any] = {
-        "kty": "RSA",
+        "kty": "OKP",
+        "crv": "Ed25519",
         "kid": _KID,
         "use": "sig",
-        "alg": "RS256",
-        "n": _b64url_uint(numbers.n),
-        "e": _b64url_uint(numbers.e),
+        "alg": "EdDSA",
+        "x": base64.urlsafe_b64encode(public_raw).decode().rstrip("="),
     }
     return private, jwk
 
 
 def _sign(
-    private: RSAPrivateKey,
+    private: Ed25519PrivateKey,
     *,
     iss: str = _ISSUER,
     aud: str = _AUDIENCE,
@@ -62,7 +59,7 @@ def _sign(
     expires_in: int = 3600,
     kid: str | None = _KID,
 ) -> str:
-    """Create a signed JWT for testing."""
+    """Create an Ed25519-signed JWT for testing."""
     pem = private.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -79,7 +76,7 @@ def _sign(
         "exp": now + expires_in,
     }
     headers = {"kid": kid} if kid else {}
-    return jwt.encode(payload, pem, algorithm="RS256", headers=headers)
+    return jwt.encode(payload, pem, algorithm="EdDSA", headers=headers)
 
 
 def _make_verifier(jwk: dict[str, Any]) -> JWKSTokenVerifier:
@@ -96,7 +93,7 @@ def _make_verifier(jwk: dict[str, Any]) -> JWKSTokenVerifier:
 class TestVerifyToken:
     @pytest.mark.anyio
     async def test_accepts_valid_token(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -107,7 +104,7 @@ class TestVerifyToken:
         assert result.expires_at is not None
 
     @pytest.mark.anyio
-    async def test_scope_as_list(self, keypair: tuple[RSAPrivateKey, dict[str, Any]]) -> None:
+    async def test_scope_as_list(self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
         token = _sign(private, scope=["mcp:read", "mcp:write"])
@@ -117,7 +114,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_wrong_issuer(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -126,7 +123,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_wrong_audience(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -135,7 +132,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_expired_token(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -144,7 +141,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_token_with_no_kid(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -153,7 +150,7 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_unknown_kid(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
@@ -165,71 +162,17 @@ class TestVerifyToken:
 
     @pytest.mark.anyio
     async def test_rejects_garbage_token(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         _, jwk = keypair
         verifier = _make_verifier(jwk)
         assert await verifier.verify_token("not-a-jwt") is None
 
-    @pytest.mark.anyio
-    async def test_accepts_eddsa_ed25519_token(self) -> None:
-        """Issuers like better-auth default to EdDSA/Ed25519 over RS256."""
-        import base64 as _b64
-
-        from cryptography.hazmat.primitives import serialization as _ser
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-            Ed25519PrivateKey,
-        )
-
-        ed_priv = Ed25519PrivateKey.generate()
-        ed_pub = ed_priv.public_key().public_bytes(
-            encoding=_ser.Encoding.Raw,
-            format=_ser.PublicFormat.Raw,
-        )
-        ed_jwk: dict[str, Any] = {
-            "kty": "OKP",
-            "crv": "Ed25519",
-            "kid": "ed-kid",
-            "use": "sig",
-            "alg": "EdDSA",
-            "x": _b64.urlsafe_b64encode(ed_pub).decode().rstrip("="),
-        }
-        verifier = JWKSTokenVerifier(
-            jwks_uri="https://issuer.example/jwks",
-            issuer=_ISSUER,
-            audience=_AUDIENCE,
-        )
-        verifier._jwks_keys = {"ed-kid": ed_jwk}
-        verifier._jwks_fetched_at = time.monotonic()
-
-        pem = ed_priv.private_bytes(
-            encoding=_ser.Encoding.PEM,
-            format=_ser.PrivateFormat.PKCS8,
-            encryption_algorithm=_ser.NoEncryption(),
-        )
-        now = int(time.time())
-        token = jwt.encode(
-            {
-                "iss": _ISSUER,
-                "aud": _AUDIENCE,
-                "sub": "user-1",
-                "scope": "mcp:read",
-                "iat": now,
-                "exp": now + 3600,
-            },
-            pem,
-            algorithm="EdDSA",
-            headers={"kid": "ed-kid"},
-        )
-        result = await verifier.verify_token(token)
-        assert result is not None
-        assert result.scopes == ["mcp:read"]
-
 
 class TestJWKSFetch:
     @pytest.mark.anyio
     async def test_fetches_jwks_on_first_call(
-        self, keypair: tuple[RSAPrivateKey, dict[str, Any]]
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:
         private, jwk = keypair
         verifier = JWKSTokenVerifier(
@@ -266,7 +209,7 @@ class TestJWKSFetch:
 
         with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
             # Use a valid-shaped JWT that requires JWKS lookup.
-            private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+            private = Ed25519PrivateKey.generate()
             assert await verifier.verify_token(_sign(private)) is None
 
 

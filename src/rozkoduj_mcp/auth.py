@@ -24,9 +24,11 @@ from pydantic import AnyHttpUrl
 P = ParamSpec("P")
 R = TypeVar("R")
 
-# Algorithms accepted in inbound access tokens. EdDSA is the modern default
-# for issuers like better-auth; RS256/ES256 stay supported for legacy AS.
-_ACCEPTED_ALGS = ["EdDSA", "RS256", "ES256"]
+# Single accepted signing algorithm. EdDSA / Ed25519 is the modern default
+# (RFC 8037): smaller keys, constant-time verify, no padding attacks.
+# Narrowing the allow-list shrinks the attack surface and forces issuers
+# to stay on the current standard.
+_ACCEPTED_ALGS = ["EdDSA"]
 
 
 class JWKSTokenVerifier(TokenVerifier):
