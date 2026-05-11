@@ -1,18 +1,20 @@
-"""MCP tool: extended knowledge search (auth-gated, read-only)."""
+"""MCP tool: extended knowledge search (scope-gated, read-only)."""
 
 from typing import Any
 
+from rozkoduj_mcp.auth import requires_scope
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
+@requires_scope("mcp:knowledge:read")
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
-    """Search Rozkoduj's extended knowledge base (auth-gated, read-only).
+    """Search Rozkoduj's extended knowledge base (scope-gated, read-only).
 
-    Use when the user's question may be answered by Rozkoduj's curated content
-    beyond what's on the public blog.
+    Requires the ``mcp:knowledge:read`` OAuth scope. Anonymous callers
+    receive a scope-required error once auth is enforced.
 
     Args:
         query: Question or topic (2-300 chars).
