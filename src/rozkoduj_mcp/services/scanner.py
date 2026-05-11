@@ -1,6 +1,7 @@
 """Async client for the rozkoduj data API."""
 
 import asyncio
+import os
 from typing import Any
 
 import httpx
@@ -8,9 +9,8 @@ import httpx
 # Managed by server / HTTP lifespan - created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
 
-# Cap concurrent upstream requests per process. Tools that fan out (compare,
-# multitf, decode) used to hammer the backend in lockstep and trip rate limits;
-# the semaphore keeps each MCP request within a friendly burst window.
+# Cap concurrent upstream requests per process so fan-out tools (compare,
+# multitf, decode) stay within a friendly burst window.
 _MAX_CONCURRENT_REQUESTS = 4
 _request_semaphore: asyncio.Semaphore | None = None
 
@@ -163,3 +163,59 @@ async def decode(symbol: str, query: str = "", lang: str = "en") -> dict[str, An
     if lang != "en":
         params["lang"] = lang
     return await _get("/decode", f"decode {symbol}", params=params)  # type: ignore[no-any-return]
+
+
+async def list_strategies(
+    *,
+    status: str = "active",
+    sort: str = "sharpe_desc",
+    visibility: str = "public",
+    family: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """List Rozkoduj's published strategies."""
+    params: dict[str, str | int] = {
+        "status": status,
+        "sort": sort,
+        "visibility": visibility,
+        "limit": limit,
+        "offset": offset,
+    }
+    if family:
+        params["family"] = family
+    return await _get("/strategies", "list strategies", params=params)  # type: ignore[no-any-return]
+
+
+async def strategy_details(identifier: str) -> dict[str, Any]:
+    """Fetch single Rozkoduj strategy by slug or algorithm_uid."""
+    return await _get(  # type: ignore[no-any-return]
+        f"/strategies/{identifier}", f"strategy {identifier}"
+    )
+
+
+async def search_articles(query: str, locale: str | None = None, limit: int = 5) -> dict[str, Any]:
+    """Hybrid search over Rozkoduj blog articles."""
+    payload: dict[str, Any] = {"query": query, "limit": limit}
+    if locale:
+        payload["locale"] = locale
+    return await _post("/articles/search", "search articles", json=payload)  # type: ignore[no-any-return]
+
+
+def _internal_headers() -> dict[str, str]:
+    """Build the internal-auth header from ``INTERNAL_API_KEY``."""
+    key = os.environ.get("INTERNAL_API_KEY")
+    if not key:
+        msg = "INTERNAL_API_KEY not set"
+        raise RuntimeError(msg)
+    return {"X-Internal-Key": key}
+
+
+async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
+    """Search Rozkoduj's extended knowledge base (auth-gated)."""
+    return await _post(  # type: ignore[no-any-return]
+        "/knowledge/search",
+        "search knowledge",
+        json={"query": query, "limit": limit},
+        headers=_internal_headers(),
+    )
