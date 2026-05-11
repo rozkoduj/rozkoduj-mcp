@@ -45,7 +45,9 @@ WINDOW_SECONDS = 3600
 SERVICE = "mcp"
 
 # Outer Starlette routes handle these without touching MCP - never count.
-_SKIP_PATHS: frozenset[str] = frozenset({"/robots.txt", "/health"})
+# Discovery endpoints are public by spec and must not require auth or
+# burn quota (clients probe them before they have a token).
+_SKIP_PATHS: frozenset[str] = frozenset({"/robots.txt", "/health", "/.well-known/mcp.json"})
 
 
 class SupabaseUsageStore:
