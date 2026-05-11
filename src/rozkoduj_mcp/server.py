@@ -9,6 +9,7 @@ from mcp.server.fastmcp import FastMCP
 
 from rozkoduj_mcp.auth import default_auth
 from rozkoduj_mcp.services import scanner
+from rozkoduj_mcp.telemetry import install_tool_telemetry
 
 _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
 
@@ -59,6 +60,11 @@ _mcp_kwargs["token_verifier"] = _verifier
 _mcp_kwargs["auth"] = _auth_settings
 
 mcp = FastMCP("rozkoduj", **_mcp_kwargs)
+
+# Patch `mcp.tool` to emit a PostHog event per call (no-op when
+# POSTHOG_API_KEY is unset). MUST run before the tool modules are imported
+# so the `@mcp.tool(...)` decorations pick up the wrapped registrar.
+install_tool_telemetry(mcp)
 
 # Import tool modules so @mcp.tool() decorators register with the server.
 # Import resources and prompts so @mcp.resource()/@mcp.prompt() decorators register.
