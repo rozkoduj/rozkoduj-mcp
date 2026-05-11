@@ -84,5 +84,5 @@ import rozkoduj_mcp.tools.strategy_details as _strategy_details  # noqa: F401, E
 
 # Auth-gated tool: only registered when an internal key is configured so it
 # doesn't surface in tools/list for anonymous clients.
-if os.environ.get("INTERNAL_API_KEY"):
+if os.environ.get("INTERNAL_API_KEY"):  # pragma: no cover
     import rozkoduj_mcp.tools.search_knowledge as _search_knowledge  # noqa: F401
