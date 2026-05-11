@@ -14,7 +14,7 @@ def _mock_result() -> dict[str, Any]:
             {
                 "algorithm_uid": "01JABC",
                 "slug": "ma-cross-ema",
-                "name": {"en": "MA Cross EMA", "pl": "Krzyż MA EMA"},
+                "name": {"en": "MA Cross EMA"},
                 "best_run": {"sharpe": 2.4, "cagr": 0.45},
             }
         ],

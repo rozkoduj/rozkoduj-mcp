@@ -1,4 +1,4 @@
-"""Tests for rozkoduj_mcp.auth — JWKS-based JWT verification."""
+"""Tests for rozkoduj_mcp.auth - JWKS-based JWT verification."""
 
 import base64
 import os

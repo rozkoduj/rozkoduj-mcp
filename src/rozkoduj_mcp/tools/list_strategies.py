@@ -18,9 +18,9 @@ async def list_strategies(
 ) -> dict[str, Any]:
     """List Rozkoduj's published trading strategies.
 
-    Returns the catalog of systematically-tested, hyperparameter-optimised
-    strategies with their best run metrics. Use this when asked "what strategies
-    do you have?", "show me the leaderboard", "best by Sortino/Sharpe", etc.
+    Returns Rozkoduj's catalog of trading strategies with their best run
+    metrics. Use this when asked "what strategies do you have?", "show me the
+    leaderboard", "best by Sortino/Sharpe", etc.
 
     Each item carries `algorithm_uid` (ULID), `slug`, i18n `name`/`description`,
     `family`/`variant`, `tags`, and `best_run` with hot metrics

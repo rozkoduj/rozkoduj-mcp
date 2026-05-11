@@ -213,14 +213,14 @@ class TestBuzz:
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_params(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(
-            return_value=_mock_response({"query": "JSW", "attention": "HIGH"})
+            return_value=_mock_response({"query": "AAPL", "attention": "HIGH"})
         )
 
-        result = await buzz(query="JSW akcje", lang="pl", wiki_article="JSW_SA")
+        result = await buzz(query="AAPL stock", lang="en", wiki_article="Apple_Inc")
 
         params = mock_client.get.call_args[1]["params"]
-        assert params["query"] == "JSW akcje"
-        assert params["lang"] == "pl"
+        assert params["query"] == "AAPL stock"
+        assert params["lang"] == "en"
         assert result["attention"] == "HIGH"
 
     @pytest.mark.anyio
@@ -376,12 +376,12 @@ class TestDecodeScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_with_non_en_lang(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "JSW"}))
+        mock_client.get = AsyncMock(return_value=_mock_response({"symbol": "ASML.AS"}))
 
-        await decode(symbol="JSW", lang="pl")
+        await decode(symbol="ASML.AS", lang="de")
 
         params = mock_client.get.call_args[1]["params"]
-        assert params["lang"] == "pl"
+        assert params["lang"] == "de"
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
@@ -443,7 +443,7 @@ class TestSearchArticles:
 
 
 class TestSearchKnowledge:
-    """Tests for search_knowledge() — requires INTERNAL_API_KEY."""
+    """Tests for search_knowledge() - requires INTERNAL_API_KEY."""
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")

@@ -19,7 +19,7 @@ async def decode(
     and analyst data, and news sentiment. Each dimension scored 0-100.
 
     Use query param for better news search (e.g. "Siemens Healthineers").
-    Use lang="pl" for Polish news context.
+    Use the `lang` arg (ISO 639-1 code) to scope news to a non-English locale.
     """
     validate_str(symbol, "symbol")
     if query:

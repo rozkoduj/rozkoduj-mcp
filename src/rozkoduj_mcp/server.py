@@ -42,9 +42,7 @@ _mcp_kwargs: dict[str, Any] = {
         "tags, family/variant, and best_run metrics (sharpe, sortino, cagr, "
         "max_drawdown, win_rate). "
         "For free-text questions about Rozkoduj content: use 'search_articles' "
-        "to query the public blog (hybrid keyword + semantic search, returns "
-        "slug+locale for citation), and 'search_knowledge' to query the private "
-        "knowledge base if available (read-only). "
+        "to query the public blog (returns slug+locale for citation). "
         "Every market-data response carries a data freshness contract (data_date, "
         "freshness, staleness_seconds, fetched_at) - read the "
         "rozkoduj://freshness-contract resource for the full schema and reasoning "
@@ -81,6 +79,10 @@ import rozkoduj_mcp.tools.multitf as _multitf  # noqa: F401, E402
 import rozkoduj_mcp.tools.scan as _scan  # noqa: F401, E402
 import rozkoduj_mcp.tools.score as _score  # noqa: F401, E402
 import rozkoduj_mcp.tools.search_articles as _search_articles  # noqa: F401, E402
-import rozkoduj_mcp.tools.search_knowledge as _search_knowledge  # noqa: F401, E402
 import rozkoduj_mcp.tools.smart_screen as _smart_screen  # noqa: F401, E402
 import rozkoduj_mcp.tools.strategy_details as _strategy_details  # noqa: F401, E402
+
+# Auth-gated tool: only registered when an internal key is configured so it
+# doesn't surface in tools/list for anonymous clients.
+if os.environ.get("INTERNAL_API_KEY"):
+    import rozkoduj_mcp.tools.search_knowledge as _search_knowledge  # noqa: F401

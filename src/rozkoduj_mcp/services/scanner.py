@@ -9,9 +9,8 @@ import httpx
 # Managed by server / HTTP lifespan - created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
 
-# Cap concurrent upstream requests per process. Tools that fan out (compare,
-# multitf, decode) used to hammer the backend in lockstep and trip rate limits;
-# the semaphore keeps each MCP request within a friendly burst window.
+# Cap concurrent upstream requests per process so fan-out tools (compare,
+# multitf, decode) stay within a friendly burst window.
 _MAX_CONCURRENT_REQUESTS = 4
 _request_semaphore: asyncio.Semaphore | None = None
 
@@ -213,7 +212,7 @@ def _internal_headers() -> dict[str, str]:
 
 
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
-    """Hybrid search over Rozkoduj's private knowledge base."""
+    """Search Rozkoduj's extended knowledge base (auth-gated)."""
     return await _post(  # type: ignore[no-any-return]
         "/knowledge/search",
         "search knowledge",

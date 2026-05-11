@@ -44,9 +44,9 @@ class TestDecode:
     async def test_with_lang(self, mock_scanner: MagicMock) -> None:
         mock_scanner.decode = AsyncMock(return_value=_mock_decode_result())
 
-        await decode(symbol="JSW", lang="pl")
+        await decode(symbol="ASML.AS", lang="de")
 
-        mock_scanner.decode.assert_called_once_with(symbol="JSW", query="", lang="pl")
+        mock_scanner.decode.assert_called_once_with(symbol="ASML.AS", query="", lang="de")
 
     @pytest.mark.anyio
     async def test_rejects_long_symbol(self) -> None:

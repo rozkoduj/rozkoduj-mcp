@@ -1,8 +1,4 @@
-"""MCP tool: read-only hybrid search over Rozkoduj's private knowledge base.
-
-Available when ``INTERNAL_API_KEY`` is configured. Read-only by design - no
-write tool is exposed via MCP.
-"""
+"""MCP tool: extended knowledge search (auth-gated, read-only)."""
 
 from typing import Any
 
@@ -13,10 +9,10 @@ from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
-    """Search Rozkoduj's private knowledge base (auth-gated, read-only).
+    """Search Rozkoduj's extended knowledge base (auth-gated, read-only).
 
-    Use when the user's question may be answered by Rozkoduj's curated
-    internal notes that are not on the public site.
+    Use when the user's question may be answered by Rozkoduj's curated content
+    beyond what's on the public blog.
 
     Args:
         query: Question or topic (2-300 chars).
