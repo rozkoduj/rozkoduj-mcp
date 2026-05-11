@@ -1,15 +1,13 @@
 """OAuth 2.1 token verification and per-tool scope gating.
 
-Validates RS256 JWT access tokens against a remote JWKS (RFC 7517) and
-provides a ``requires_scope`` decorator that gates individual tools on
-the OAuth scopes carried by the inbound bearer token. The JWKS is fetched
-lazily on first use and cached per process. Wiring lives in ``server.py``
-and is gated by ``MCP_AUTH_REQUIRED`` so the server can run anonymously
-by default during the rollout.
+Validates EdDSA JWT access tokens against the rozkoduj.com auth server's
+JWKS (RFC 7517) and exposes a ``requires_scope`` decorator that gates
+individual tools on the scopes carried by the inbound bearer token. The
+issuer, audience, and JWKS URI are constants because this server has one
+canonical deployment and one authorization server.
 """
 
 import functools
-import os
 import time
 from collections.abc import Awaitable, Callable
 from typing import Any, ParamSpec, TypeVar, cast
@@ -26,9 +24,14 @@ R = TypeVar("R")
 
 # Single accepted signing algorithm. EdDSA / Ed25519 is the modern default
 # (RFC 8037): smaller keys, constant-time verify, no padding attacks.
-# Narrowing the allow-list shrinks the attack surface and forces issuers
-# to stay on the current standard.
 _ACCEPTED_ALGS = ["EdDSA"]
+
+# Production OAuth wiring. One AS, one RS - so the URLs live in code as
+# constants rather than env vars. Changing the AS means a code change here.
+ISSUER = "https://rozkoduj.com/api/auth"
+AUDIENCE = "https://mcp.rozkoduj.com/mcp"
+JWKS_URI = f"{ISSUER}/jwks"
+REQUIRED_SCOPES = ["mcp:read"]
 
 
 class JWKSTokenVerifier(TokenVerifier):
@@ -109,42 +112,21 @@ class JWKSTokenVerifier(TokenVerifier):
         )
 
 
-def auth_from_env() -> tuple[JWKSTokenVerifier, AuthSettings] | None:
-    """Build a verifier + AuthSettings pair from env, or return None when disabled.
-
-    Required when MCP_AUTH_REQUIRED=true:
-        MCP_AUTH_ISSUER     OAuth issuer URL (matches the `iss` JWT claim)
-        MCP_AUTH_AUDIENCE   Resource server URL (matches the `aud` JWT claim)
-    Optional:
-        MCP_AUTH_JWKS_URI   Defaults to <issuer>/jwks
-        MCP_AUTH_SCOPES     Space-separated list (defaults to "mcp:read")
-    """
-    if not is_auth_active():
-        return None
-
-    issuer = os.environ["MCP_AUTH_ISSUER"]
-    audience = os.environ["MCP_AUTH_AUDIENCE"]
-    jwks_uri = os.environ.get("MCP_AUTH_JWKS_URI") or f"{issuer.rstrip('/')}/jwks"
-    required_scopes = os.environ.get("MCP_AUTH_SCOPES", "mcp:read").split()
-
-    verifier = JWKSTokenVerifier(jwks_uri=jwks_uri, issuer=issuer, audience=audience)
+def default_auth() -> tuple[JWKSTokenVerifier, AuthSettings]:
+    """Return the verifier + AuthSettings pair for the canonical deployment."""
+    verifier = JWKSTokenVerifier(jwks_uri=JWKS_URI, issuer=ISSUER, audience=AUDIENCE)
     settings = AuthSettings(
-        issuer_url=AnyHttpUrl(issuer),
-        resource_server_url=AnyHttpUrl(audience),
-        required_scopes=required_scopes,
+        issuer_url=AnyHttpUrl(ISSUER),
+        resource_server_url=AnyHttpUrl(AUDIENCE),
+        required_scopes=REQUIRED_SCOPES,
     )
     return verifier, settings
-
-
-def is_auth_active() -> bool:
-    """Return True when token verification is enforced for this process."""
-    return os.environ.get("MCP_AUTH_REQUIRED", "").lower() == "true"
 
 
 def current_scopes() -> frozenset[str]:
     """OAuth scopes from the bearer token bound to the current request.
 
-    Empty when the request is anonymous (no token or auth disabled).
+    Empty when the request is anonymous (no token in flight).
     """
     token = get_access_token()
     if token is None:
@@ -177,16 +159,15 @@ def requires_scope(
 ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     """Gate a tool on an OAuth scope carried by the inbound bearer token.
 
-    No-op while ``MCP_AUTH_REQUIRED`` is unset so the server keeps serving
-    anonymously during the rollout. Once auth is enforced, calls without
-    the required scope raise ``ScopeRequiredError`` which the MCP layer
-    surfaces as a tool error.
+    Anonymous calls (no token) and calls whose token lacks the scope both
+    raise ``ScopeRequiredError`` which the MCP layer surfaces as a tool
+    error.
     """
 
     def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         @functools.wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            if is_auth_active() and scope not in current_scopes():
+            if scope not in current_scopes():
                 raise ScopeRequiredError(scope)
             return await func(*args, **kwargs)
 
