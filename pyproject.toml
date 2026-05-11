@@ -25,9 +25,9 @@ classifiers = [
 ]
 dependencies = [
     "mcp[cli]>=1.27.1",
-    "httpx>=0.28.0",
-    "pyjwt[crypto]>=2.10.0",
-    "posthog>=7.0.0",
+    "httpx>=0.28.1",
+    "pyjwt[crypto]>=2.12.1",
+    "posthog>=7.14.1",
 ]
 
 [project.scripts]
@@ -41,12 +41,12 @@ Changelog = "https://github.com/rozkoduj/rozkoduj-mcp/releases"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "anyio>=4.13",
-    "mypy>=1.20.0",
-    "ruff>=0.15.8",
-    "pre-commit>=4.5",
-    "coverage>=7.13",
+    "pytest>=9.0.3",
+    "anyio>=4.13.0",
+    "mypy>=2.1.0",
+    "ruff>=0.15.12",
+    "pre-commit>=4.6.0",
+    "coverage>=7.14.0",
 ]
 
 [build-system]
