@@ -853,7 +853,7 @@ wheels = [
 
 [[package]]
 name = "rozkoduj-mcp"
-version = "2026.5.11"
+version = "2026.5.12"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
