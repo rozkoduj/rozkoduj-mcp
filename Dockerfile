@@ -1,4 +1,4 @@
-FROM python:3.14-slim@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa AS builder
+FROM python:3.14-slim@sha256:1697e8e8d39bf168e177ac6b5fdab6df86d81cfc24dae17dfb96cfc3ef76b4dd AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src/ ./src/
 RUN uv sync --frozen --no-dev
 
-FROM python:3.14-slim@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa
+FROM python:3.14-slim@sha256:1697e8e8d39bf168e177ac6b5fdab6df86d81cfc24dae17dfb96cfc3ef76b4dd
 
 WORKDIR /app
 
