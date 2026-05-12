@@ -133,7 +133,7 @@ Same pattern works for any market question:
 | *"Do timeframes agree on TSLA?"*     | 15m / 1h / 4h / 1d / 1W side-by-side with alignment score            |
 | *"Find oversold bounce in EU."*      | Filtered list: RSI < 30 + MACD bullish cross                         |
 | *"What's the market mood?"*          | RISK-ON / RISK-OFF + fear & greed + VIX + upcoming events            |
-| *"Any buzz around Tesla?"*           | Attention level + fresh headlines from major sources                 |
+| *"Any buzz around Tesla?"*           | Attention level + fresh headlines with citations                     |
 
 ## Tools
 

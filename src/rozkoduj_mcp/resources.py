@@ -89,7 +89,7 @@ _FRESHNESS_CONTRACT: dict[str, object] = {
             "format": "YYYY-MM-DD",
             "description": (
                 "Source date of the underlying market data. Null when the data does "
-                "not have a discrete snapshot date (e.g. a malformed upstream row)."
+                "not have a discrete snapshot date (e.g. a row missing a date field)."
             ),
         },
         {
@@ -127,8 +127,7 @@ _FRESHNESS_CONTRACT: dict[str, object] = {
     ),
     "guidance_for_agents": (
         "If freshness is STALE or UNKNOWN, surface that to the user before "
-        "presenting numbers as current. Prefer LIVE data when multiple sources "
-        "are available."
+        "presenting numbers as current. Prefer LIVE data when available."
     ),
 }
 

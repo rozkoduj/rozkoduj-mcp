@@ -17,7 +17,7 @@
   <!-- Background -->
   <rect width="640" height="613" fill="#000"/>
 
-  <!-- Candle 1 (doji — tiny body, long wicks) -->
+  <!-- Candle 1 (doji - tiny body, long wicks) -->
   <line class="wick" x1="114" y1="253" x2="114" y2="378"/>
   <rect class="body" x="84" y="308" width="59" height="15"/>
 
@@ -37,7 +37,7 @@
   <line class="wick" x1="465" y1="131" x2="465" y2="338"/>
   <rect class="body" x="436" y="186" width="59" height="97"/>
 
-  <!-- Candle 6 (doji — tiny body, long wicks) -->
+  <!-- Candle 6 (doji - tiny body, long wicks) -->
   <line class="wick" x1="551" y1="212" x2="551" y2="343"/>
   <rect class="body" x="521" y="267" width="59" height="21"/>
 
