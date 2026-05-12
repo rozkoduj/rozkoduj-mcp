@@ -29,13 +29,11 @@ def _scanner_semaphore() -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def _stub_metadata_server() -> Iterator[None]:
-    """Pretend the GCE metadata server is unreachable.
+    """Pretend the platform metadata server is unreachable.
 
-    Tests run outside Cloud Run so a real fetch would DNS-fail after the
-    httpx timeout and slow every test. Patching ``iam_client._fetch`` to
-    return ``None`` makes ``_outbound_headers`` emit the local-dev fallback
-    path (no Authorization unless ``INTERNAL_API_KEY`` is set) without any
-    network IO.
+    Tests run off-platform so a real fetch would DNS-fail after the httpx
+    timeout and slow every test. Patching ``iam_client._fetch`` to return
+    ``None`` exercises the local-dev fallback path without any network IO.
     """
     iam_client.reset_cache()
     with patch.object(iam_client, "_fetch", new=AsyncMock(return_value=None)):
