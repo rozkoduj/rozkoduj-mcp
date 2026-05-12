@@ -33,9 +33,8 @@ def _run_http() -> None:
     from starlette.responses import JSONResponse, PlainTextResponse
     from starlette.routing import Mount, Route
 
-    from rozkoduj_mcp.auth import AUDIENCE, ISSUER, default_auth
+    from rozkoduj_mcp.auth import AUDIENCE, ISSUER
     from rozkoduj_mcp.logging import RequestLoggingMiddleware
-    from rozkoduj_mcp.rate_limit import RateLimitMiddleware, default_store
     from rozkoduj_mcp.server import mcp
     from rozkoduj_mcp.services import scanner
 
@@ -73,11 +72,6 @@ def _run_http() -> None:
             },
         )
 
-    # Persistent, tier-aware rate limit shared across Cloud Run replicas.
-    # Wired only when Supabase is configured - local dev / tests stay open.
-    usage_store = default_store()
-    verifier, _ = default_auth()
-
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
         scanner.setup_client(os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com"))
@@ -86,12 +80,8 @@ def _run_http() -> None:
                 yield
             finally:
                 await scanner.close_client()
-                if usage_store is not None:
-                    await usage_store.aclose()
 
     middleware: list[Middleware] = [Middleware(RequestLoggingMiddleware)]
-    if usage_store is not None:
-        middleware.append(Middleware(RateLimitMiddleware, store=usage_store, verifier=verifier))
 
     app = Starlette(
         routes=[
