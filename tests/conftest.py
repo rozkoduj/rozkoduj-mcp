@@ -1,6 +1,28 @@
 """Shared test fixtures for rozkoduj-mcp."""
 
+import asyncio
+from collections.abc import Iterator
 from typing import Any
+
+import pytest
+
+from rozkoduj_mcp.services import scanner
+
+
+@pytest.fixture(autouse=True)
+def _scanner_semaphore() -> Iterator[None]:
+    """Match the production lifespan contract.
+
+    Without setup_client(), scanner._get_semaphore() correctly raises - we
+    pre-init the semaphore here so individual tests that patch only
+    ``scanner.client`` (the common case) keep working without each having
+    to call setup_client themselves.
+    """
+    scanner._request_semaphore = asyncio.Semaphore(scanner._MAX_CONCURRENT_REQUESTS)
+    try:
+        yield
+    finally:
+        scanner._request_semaphore = None
 
 
 def mock_analysis(
