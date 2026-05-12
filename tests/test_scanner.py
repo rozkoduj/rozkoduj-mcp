@@ -6,8 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from rozkoduj_mcp.services import scanner as scanner_mod
 from rozkoduj_mcp.services.scanner import (
     _get_client,
+    _get_semaphore,
     analyze,
     buzz,
     calendar,
@@ -27,6 +29,16 @@ class TestGetClient:
     def test_raises_when_not_initialized(self) -> None:
         with pytest.raises(RuntimeError, match="not initialized"):
             _get_client()
+
+
+class TestGetSemaphore:
+    """Tests for _get_semaphore()."""
+
+    def test_raises_when_not_initialized(self) -> None:
+        # Bypass the autouse fixture for this one assertion.
+        scanner_mod._request_semaphore = None
+        with pytest.raises(RuntimeError, match="not initialized"):
+            _get_semaphore()
 
 
 def _mock_response(data: Any, status: int = 200) -> MagicMock:
@@ -559,3 +571,29 @@ class TestSearchKnowledge:
         await search_knowledge(query="x")
 
         assert mock_client.post.call_args[1]["headers"] == {}
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_forwards_trace_header_to_api(
+        self,
+        mock_client: AsyncMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Inbound Cloud Run trace header propagates so GCP Logging joins
+        the MCP and API entries under the same trace_id.
+        """
+        from rozkoduj_mcp.logging import current_trace_header
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        monkeypatch.setenv("INTERNAL_API_KEY", "key-xyz")
+        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+
+        token = current_trace_header.set("trace-abc/0;o=1")
+        try:
+            await search_knowledge(query="x")
+        finally:
+            current_trace_header.reset(token)
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["X-Internal-Key"] == "key-xyz"
+        assert headers["X-Cloud-Trace-Context"] == "trace-abc/0;o=1"

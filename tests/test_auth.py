@@ -170,6 +170,87 @@ class TestVerifyToken:
         assert await verifier.verify_token("not-a-jwt") is None
 
 
+class TestJWKSRotationRetry:
+    """When the auth server rotates its signing key, the cached JWK becomes
+    stale until the TTL expires. The verifier must refresh once on signature
+    failure so the new key gets picked up immediately.
+    """
+
+    @pytest.mark.anyio
+    async def test_refreshes_on_signature_failure_and_retries(self) -> None:
+        old_key = Ed25519PrivateKey.generate()
+        new_key = Ed25519PrivateKey.generate()
+        new_pub = new_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        new_jwk: dict[str, Any] = {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "kid": _KID,
+            "alg": "EdDSA",
+            "x": base64.urlsafe_b64encode(new_pub).decode().rstrip("="),
+        }
+
+        verifier = JWKSTokenVerifier(
+            jwks_uri="https://issuer.example/jwks",
+            issuer=_ISSUER,
+            audience=_AUDIENCE,
+        )
+        # Seed cache with the *old* public key as if rotation just happened.
+        old_pub = old_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        verifier._jwks_keys = {
+            _KID: {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "kid": _KID,
+                "alg": "EdDSA",
+                "x": base64.urlsafe_b64encode(old_pub).decode().rstrip("="),
+            }
+        }
+        verifier._jwks_fetched_at = time.monotonic()
+
+        async def _swap_to_new_key() -> None:
+            verifier._jwks_keys = {_KID: new_jwk}
+            verifier._jwks_fetched_at = time.monotonic()
+
+        with patch.object(verifier, "_refresh_jwks", new=AsyncMock(side_effect=_swap_to_new_key)):
+            token = _sign(new_key)
+            result = await verifier.verify_token(token)
+
+        assert result is not None
+        assert result.client_id == "claude"
+
+    @pytest.mark.anyio
+    async def test_gives_up_after_one_retry(self) -> None:
+        verifier = _make_verifier(
+            {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "kid": _KID,
+                "alg": "EdDSA",
+                "x": base64.urlsafe_b64encode(
+                    Ed25519PrivateKey.generate()
+                    .public_key()
+                    .public_bytes(
+                        encoding=serialization.Encoding.Raw,
+                        format=serialization.PublicFormat.Raw,
+                    )
+                )
+                .decode()
+                .rstrip("="),
+            }
+        )
+        # Token signed with a totally unrelated key - even after refresh, no match.
+        bad_token = _sign(Ed25519PrivateKey.generate())
+        with patch.object(verifier, "_refresh_jwks", new=AsyncMock()) as refresh:
+            assert await verifier.verify_token(bad_token) is None
+        assert refresh.await_count == 1
+
+
 class TestJWKSFetch:
     @pytest.mark.anyio
     async def test_fetches_jwks_on_first_call(
