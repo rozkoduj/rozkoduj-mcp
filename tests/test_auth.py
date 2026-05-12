@@ -21,7 +21,9 @@ from rozkoduj_mcp.auth import (
     JWKSTokenVerifier,
     ScopeRequiredError,
     current_scopes,
-    current_token_string,
+    current_user_id,
+    current_user_scopes,
+    current_user_tier,
     default_auth,
     requires_scope,
 )
@@ -323,18 +325,69 @@ def _bind_user(*, scopes: list[str], token: str = "tok") -> Any:  # noqa: S107
     return auth_context_var.set(user)
 
 
-class TestCurrentTokenAccessors:
-    def test_no_context_returns_none_and_empty(self) -> None:
-        assert current_token_string() is None
+class TestCurrentScopes:
+    def test_no_context_returns_empty(self) -> None:
         assert current_scopes() == frozenset()
 
-    def test_returns_bound_token_and_scopes(self) -> None:
-        reset = _bind_user(scopes=["a", "b"], token="xyz")  # noqa: S106
+    def test_returns_bound_scopes(self) -> None:
+        reset = _bind_user(scopes=["a", "b"])
         try:
-            assert current_token_string() == "xyz"
             assert current_scopes() == frozenset({"a", "b"})
         finally:
             auth_context_var.reset(reset)
+
+
+class TestUserIdentityContextVars:
+    """verify_token must pin sub / tier / scopes onto request-scoped
+    ContextVars so the scanner can attach X-User-* headers to outbound
+    API calls without re-parsing the bearer."""
+
+    @pytest.mark.anyio
+    async def test_populates_contextvars_from_payload(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
+        private, jwk = keypair
+        verifier = _make_verifier(jwk)
+        # Burn in a known-bad value so we can confirm verify_token sets it.
+        current_user_id.set("stale")
+        current_user_tier.set("stale")
+        current_user_scopes.set("stale")
+        await verifier.verify_token(_sign(private, scope="mcp:read mcp:knowledge:read"))
+        assert current_user_id.get() == "user-1"
+        assert current_user_scopes.get() == "mcp:read mcp:knowledge:read"
+        # No tier claim on the test fixture token -> defaults to "free".
+        assert current_user_tier.get() == "free"
+
+    @pytest.mark.anyio
+    async def test_tier_claim_propagated(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
+        private, jwk = keypair
+        verifier = _make_verifier(jwk)
+        pem = private.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        now = int(time.time())
+        token = jwt.encode(
+            {
+                "iss": _ISSUER,
+                "aud": _AUDIENCE,
+                "sub": "user-pro",
+                "client_id": "claude",
+                "scope": "mcp:read mcp:knowledge:read",
+                "tier": "pro",
+                "iat": now,
+                "exp": now + 600,
+            },
+            pem,
+            algorithm="EdDSA",
+            headers={"kid": _KID},
+        )
+        await verifier.verify_token(token)
+        assert current_user_id.get() == "user-pro"
+        assert current_user_tier.get() == "pro"
 
 
 class TestRequiresScope:

@@ -10,6 +10,7 @@ canonical deployment and one authorization server.
 import functools
 import time
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from typing import Any, ParamSpec, TypeVar, cast
 
 import httpx
@@ -21,6 +22,14 @@ from pydantic import AnyHttpUrl
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+# End-user identity carved out of the validated JWT, exposed to downstream
+# call sites (services/scanner.py) so they can forward it to the API in
+# ``X-User-*`` headers. Empty string when the request is anonymous - we
+# never want to send "None" / "null" downstream.
+current_user_id: ContextVar[str] = ContextVar("current_user_id", default="")
+current_user_tier: ContextVar[str] = ContextVar("current_user_tier", default="")
+current_user_scopes: ContextVar[str] = ContextVar("current_user_scopes", default="")
 
 # Single accepted signing algorithm. EdDSA / Ed25519 is the modern default
 # (RFC 8037): smaller keys, constant-time verify, no padding attacks.
@@ -133,6 +142,13 @@ class JWKSTokenVerifier(TokenVerifier):
         expires_at_raw = payload.get("exp")
         expires_at = int(expires_at_raw) if isinstance(expires_at_raw, (int, float)) else None
 
+        # Pin end-user identity into the request-scoped context so outbound
+        # calls to the API can attach X-User-* headers without having to
+        # re-parse the bearer token.
+        current_user_id.set(str(payload.get("sub") or ""))
+        current_user_tier.set(str(payload.get("tier") or "free"))
+        current_user_scopes.set(" ".join(scopes))
+
         return AccessToken(
             token=token,
             client_id=cast(str, client_id),
@@ -161,18 +177,6 @@ def current_scopes() -> frozenset[str]:
     if token is None:
         return frozenset()
     return frozenset(token.scopes)
-
-
-def current_token_string() -> str | None:
-    """Raw bearer token string for the current request, when present.
-
-    Used by downstream calls to forward the caller's identity to other
-    resource servers rather than relying on a shared transport secret.
-    """
-    token = get_access_token()
-    if token is None:
-        return None
-    return token.token
 
 
 class ScopeRequiredError(PermissionError):

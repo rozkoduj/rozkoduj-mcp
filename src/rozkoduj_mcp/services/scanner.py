@@ -1,10 +1,21 @@
-"""Async client for the rozkoduj data API."""
+"""Async client for the rozkoduj data API.
+
+Outbound calls authenticate to the API via Cloud Run IAM — the MCP fetches
+a Google-signed ID token from the GCE metadata server and uses it as the
+``Authorization: Bearer`` value. End-user identity (sub / tier / scopes)
+extracted from the inbound MCP JWT rides alongside in ``X-User-*`` headers.
+
+Token passthrough is forbidden by the MCP 2025-06-18 spec; this module
+never forwards the caller's bearer to the data API.
+"""
 
 import asyncio
 import os
 from typing import Any
 
 import httpx
+
+from rozkoduj_mcp import iam_client
 
 # Managed by server / HTTP lifespan - created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
@@ -61,8 +72,7 @@ def _rate_limit_error(context: str, exc: httpx.HTTPStatusError) -> RuntimeError:
 
     Surfacing 429 with the Retry-After hint lets the calling LLM tell the
     user "rate limited, retry in N seconds" instead of a generic backend
-    error - matches MCP 2025-11-25 SEP-1303 guidance that upstream API
-    failures should be tool execution errors with useful diagnostics.
+    error.
     """
     retry_after = exc.response.headers.get("Retry-After", "later")
     msg = (
@@ -73,7 +83,9 @@ def _rate_limit_error(context: str, exc: httpx.HTTPStatusError) -> RuntimeError:
 
 
 async def _post(path: str, context: str, **kwargs: Any) -> Any:
-    """POST to the data API with unified error handling."""
+    """POST to the data API with auto-attached IAM auth + user headers."""
+    extra = kwargs.pop("headers", None) or {}
+    kwargs["headers"] = {**(await _outbound_headers()), **extra}
     async with _get_semaphore():
         try:
             resp = await _get_client().post(path, **kwargs)
@@ -90,7 +102,9 @@ async def _post(path: str, context: str, **kwargs: Any) -> Any:
 
 
 async def _get(path: str, context: str, **kwargs: Any) -> Any:
-    """GET from the data API with unified error handling."""
+    """GET from the data API with auto-attached IAM auth + user headers."""
+    extra = kwargs.pop("headers", None) or {}
+    kwargs["headers"] = {**(await _outbound_headers()), **extra}
     async with _get_semaphore():
         try:
             resp = await _get_client().get(path, **kwargs)
@@ -104,6 +118,50 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
         return resp.json()
+
+
+async def _outbound_headers() -> dict[str, str]:
+    """Auth + identity + trace headers for downstream calls to the data API.
+
+    * ``Authorization: Bearer <Google ID token>`` proves to the API that
+      the caller is this MCP service (Cloud Run IAM). The token is fetched
+      from the GCE metadata server and cached in :mod:`iam_client`.
+    * ``X-User-Id`` / ``X-User-Tier`` / ``X-User-Scopes`` propagate the
+      end-user identity that this MCP validated on the inbound JWT; the
+      API trusts them *because* the IAM check has just passed.
+    * ``X-Cloud-Trace-Context`` joins MCP + API entries under the same
+      trace id in Cloud Logging.
+
+    Local-dev fallback: when the metadata server is unreachable (no GCE)
+    and ``INTERNAL_API_KEY`` is set, send the legacy transport secret so
+    the developer loop keeps working. Production traffic never lands here.
+    """
+    from rozkoduj_mcp.auth import current_user_id, current_user_scopes, current_user_tier
+    from rozkoduj_mcp.logging import current_trace_header
+
+    headers: dict[str, str] = {}
+
+    id_token = await iam_client.get_id_token()
+    if id_token is not None:
+        headers["Authorization"] = f"Bearer {id_token}"
+    else:
+        key = os.environ.get("INTERNAL_API_KEY")
+        if key:
+            headers["X-Internal-Key"] = key
+
+    user_id = current_user_id.get()
+    if user_id:
+        headers["X-User-Id"] = user_id
+        headers["X-User-Tier"] = current_user_tier.get() or "free"
+        scopes = current_user_scopes.get()
+        if scopes:
+            headers["X-User-Scopes"] = scopes
+
+    trace = current_trace_header.get()
+    if trace:
+        headers["X-Cloud-Trace-Context"] = trace
+
+    return headers
 
 
 async def scan_market(
@@ -230,40 +288,10 @@ async def search_articles(query: str, locale: str | None = None, limit: int = 5)
     return await _post("/articles/search", "search articles", json=payload)
 
 
-def _outbound_headers(*, internal_fallback: bool = False) -> dict[str, str]:
-    """Auth + trace headers for downstream calls.
-
-    Forwards the caller's bearer token (so the API can apply its own
-    per-user access controls) and the inbound trace header (so Cloud Logging
-    joins MCP and API entries under the same trace_id). Falls back to the
-    transport secret only when ``internal_fallback`` is set and no end-user
-    token is in flight.
-    """
-    from rozkoduj_mcp.auth import current_token_string
-    from rozkoduj_mcp.logging import current_trace_header
-
-    headers: dict[str, str] = {}
-
-    token = current_token_string()
-    if token is not None:
-        headers["Authorization"] = f"Bearer {token}"
-    elif internal_fallback:
-        key = os.environ.get("INTERNAL_API_KEY")
-        if key:
-            headers["X-Internal-Key"] = key
-
-    trace = current_trace_header.get()
-    if trace:
-        headers["X-Cloud-Trace-Context"] = trace
-
-    return headers
-
-
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
     """Search Rozkoduj's extended knowledge base (auth-gated)."""
     return await _post(
         "/knowledge/search",
         "search knowledge",
         json={"query": query, "limit": limit},
-        headers=_outbound_headers(internal_fallback=True),
     )

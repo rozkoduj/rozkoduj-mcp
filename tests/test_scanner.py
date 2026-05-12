@@ -590,33 +590,44 @@ class TestSearchKnowledge:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_prefers_caller_bearer_token(
+    async def test_uses_iam_token_and_user_identity_headers(
         self,
         mock_client: AsyncMock,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        from mcp.server.auth.middleware.auth_context import auth_context_var
-        from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
-        from mcp.server.auth.provider import AccessToken
-
+        """Authenticated user: Google ID token in Authorization, identity in
+        X-User-* headers. The MCP spec 2025-06-18 forbids passing the user's
+        bearer through, so the API never sees the caller's JWT."""
+        from rozkoduj_mcp import iam_client
+        from rozkoduj_mcp.auth import (
+            current_user_id,
+            current_user_scopes,
+            current_user_tier,
+        )
         from rozkoduj_mcp.services.scanner import search_knowledge
 
         monkeypatch.setenv("INTERNAL_API_KEY", "should-not-be-used")
         mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
-        user = AuthenticatedUser(
-            AccessToken(
-                token="caller-jwt",  # noqa: S106
-                client_id="cli",
-                scopes=["mcp:knowledge:read"],
-            )
-        )
-        reset = auth_context_var.set(user)
+        user_reset = current_user_id.set("user-42")
+        tier_reset = current_user_tier.set("pro")
+        scopes_reset = current_user_scopes.set("mcp:read mcp:knowledge:read")
         try:
-            await search_knowledge(query="x", limit=1)
+            with patch.object(iam_client, "_fetch", new=AsyncMock(return_value="iam-token-xyz")):
+                iam_client.reset_cache()
+                await search_knowledge(query="x", limit=1)
         finally:
-            auth_context_var.reset(reset)
+            current_user_scopes.reset(scopes_reset)
+            current_user_tier.reset(tier_reset)
+            current_user_id.reset(user_reset)
+            iam_client.reset_cache()
 
-        assert mock_client.post.call_args[1]["headers"] == {"Authorization": "Bearer caller-jwt"}
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["Authorization"] == "Bearer iam-token-xyz"
+        assert headers["X-User-Id"] == "user-42"
+        assert headers["X-User-Tier"] == "pro"
+        assert headers["X-User-Scopes"] == "mcp:read mcp:knowledge:read"
+        # Legacy transport secret must not coexist with the IAM token path.
+        assert "X-Internal-Key" not in headers
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")

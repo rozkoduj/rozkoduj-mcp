@@ -3,9 +3,11 @@
 import asyncio
 from collections.abc import Iterator
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from rozkoduj_mcp import iam_client
 from rozkoduj_mcp.services import scanner
 
 
@@ -23,6 +25,22 @@ def _scanner_semaphore() -> Iterator[None]:
         yield
     finally:
         scanner._request_semaphore = None
+
+
+@pytest.fixture(autouse=True)
+def _stub_metadata_server() -> Iterator[None]:
+    """Pretend the GCE metadata server is unreachable.
+
+    Tests run outside Cloud Run so a real fetch would DNS-fail after the
+    httpx timeout and slow every test. Patching ``iam_client._fetch`` to
+    return ``None`` makes ``_outbound_headers`` emit the local-dev fallback
+    path (no Authorization unless ``INTERNAL_API_KEY`` is set) without any
+    network IO.
+    """
+    iam_client.reset_cache()
+    with patch.object(iam_client, "_fetch", new=AsyncMock(return_value=None)):
+        yield
+    iam_client.reset_cache()
 
 
 def mock_analysis(
