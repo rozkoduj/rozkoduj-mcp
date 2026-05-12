@@ -141,6 +141,17 @@ class TestVerifyToken:
         assert await verifier.verify_token(token) is None
 
     @pytest.mark.anyio
+    async def test_accepts_token_within_clock_skew_leeway(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
+        """Token that expired ~10s ago is still accepted (within 30s leeway)."""
+        private, jwk = keypair
+        verifier = _make_verifier(jwk)
+        token = _sign(private, expires_in=-10)
+        result = await verifier.verify_token(token)
+        assert result is not None
+
+    @pytest.mark.anyio
     async def test_rejects_token_with_no_kid(
         self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
     ) -> None:

@@ -103,6 +103,7 @@ class JWKSTokenVerifier(TokenVerifier):
                     algorithms=_ACCEPTED_ALGS,
                     issuer=self._issuer,
                     audience=self._audience,
+                    leeway=30,
                 )
             except jwt.InvalidSignatureError:
                 if attempt == 1:
