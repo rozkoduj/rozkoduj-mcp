@@ -56,12 +56,33 @@ def _get_semaphore() -> asyncio.Semaphore:
     return _request_semaphore
 
 
+def _rate_limit_error(context: str, exc: httpx.HTTPStatusError) -> RuntimeError:
+    """Build an actionable RuntimeError for an upstream 429.
+
+    Surfacing 429 with the Retry-After hint lets the calling LLM tell the
+    user "rate limited, retry in N seconds" instead of a generic backend
+    error - matches MCP 2025-11-25 SEP-1303 guidance that upstream API
+    failures should be tool execution errors with useful diagnostics.
+    """
+    retry_after = exc.response.headers.get("Retry-After", "later")
+    msg = (
+        f"Rate limit exceeded for {context}. Retry after {retry_after} "
+        "seconds, or sign in for a higher quota."
+    )
+    return RuntimeError(msg)
+
+
 async def _post(path: str, context: str, **kwargs: Any) -> Any:
     """POST to the data API with unified error handling."""
     async with _get_semaphore():
         try:
             resp = await _get_client().post(path, **kwargs)
             resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                raise _rate_limit_error(context, exc) from exc
+            msg = f"Data backend unavailable for {context}"
+            raise RuntimeError(msg) from exc
         except httpx.HTTPError as exc:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
@@ -74,6 +95,11 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
         try:
             resp = await _get_client().get(path, **kwargs)
             resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                raise _rate_limit_error(context, exc) from exc
+            msg = f"Data backend unavailable for {context}"
+            raise RuntimeError(msg) from exc
         except httpx.HTTPError as exc:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc

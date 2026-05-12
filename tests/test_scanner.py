@@ -50,6 +50,28 @@ def _mock_response(data: Any, status: int = 200) -> MagicMock:
     return resp
 
 
+def _mock_429_response(retry_after: str | None = "3600") -> MagicMock:
+    """Mock httpx response that raises HTTPStatusError(429) on raise_for_status()."""
+    resp = MagicMock()
+    resp.status_code = 429
+    resp.headers = {"Retry-After": retry_after} if retry_after is not None else {}
+    resp.is_success = False
+    err = httpx.HTTPStatusError("429", request=MagicMock(), response=resp)
+    resp.raise_for_status = MagicMock(side_effect=err)
+    return resp
+
+
+def _mock_status_error_response(status: int) -> MagicMock:
+    """Mock httpx response that raises HTTPStatusError(<status>) on raise_for_status()."""
+    resp = MagicMock()
+    resp.status_code = status
+    resp.headers = {}
+    resp.is_success = False
+    err = httpx.HTTPStatusError(str(status), request=MagicMock(), response=resp)
+    resp.raise_for_status = MagicMock(side_effect=err)
+    return resp
+
+
 class TestScanMarket:
     """Tests for scan_market()."""
 
@@ -79,6 +101,30 @@ class TestScanMarket:
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
+            await scan_market(market="crypto")
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_429_surfaces_rate_limit_with_retry_after(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(return_value=_mock_429_response("1800"))
+
+        with pytest.raises(RuntimeError, match=r"Rate limit exceeded.*1800"):
+            await scan_market(market="crypto")
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_429_without_retry_after_falls_back(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(return_value=_mock_429_response(retry_after=None))
+
+        with pytest.raises(RuntimeError, match=r"Rate limit exceeded.*later"):
+            await scan_market(market="crypto")
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_non_429_status_error_raises_generic(self, mock_client: AsyncMock) -> None:
+        mock_client.post = AsyncMock(return_value=_mock_status_error_response(503))
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await scan_market(market="crypto")
@@ -274,6 +320,22 @@ class TestMarketPulse:
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_api_error_raises_runtime(self, mock_client: AsyncMock) -> None:
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+
+        with pytest.raises(RuntimeError, match="Data backend unavailable"):
+            await market_pulse()
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_429_surfaces_rate_limit_with_retry_after(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_429_response("900"))
+
+        with pytest.raises(RuntimeError, match=r"Rate limit exceeded.*900"):
+            await market_pulse()
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_non_429_status_error_raises_generic(self, mock_client: AsyncMock) -> None:
+        mock_client.get = AsyncMock(return_value=_mock_status_error_response(502))
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await market_pulse()

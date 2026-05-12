@@ -33,7 +33,13 @@ Market = Literal[
 MAX_STR_LEN = 100
 
 # All rozkoduj tools are read-only queries against live market data.
-TOOL_ANNOTATIONS = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
+# idempotent: identical calls always return equivalent data so clients
+# can safely retry on transient failures without confirmation.
+TOOL_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    idempotentHint=True,
+    openWorldHint=True,
+)
 
 
 def validate_str(value: str, name: str) -> str:
