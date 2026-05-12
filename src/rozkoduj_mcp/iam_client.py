@@ -1,19 +1,12 @@
-"""Cloud Run service identity for outbound calls to the data API.
+"""Service identity for outbound calls to the data API.
 
-The MCP fetches a Google-signed ID token from the GCE metadata server with
-the data API URL as audience. The API accepts that token, reads the ``email``
-claim to confirm the caller is this MCP's service account, and then trusts
-the end-user identity headers (``X-User-Id`` / ``X-User-Tier`` / ``X-User-Scopes``)
-that ride alongside.
+Fetches a signed ID token from the platform metadata server with the data
+API URL as audience, and uses it as the ``Authorization: Bearer`` value
+on every outbound call.
 
-Tokens are valid for 60 minutes; we refresh proactively at 55 to dodge edge-
-of-validity churn. The metadata-server hop is to a link-local address inside
-Google's network (``169.254.169.254`` aliased as ``metadata.google.internal``)
-— fast and reliable inside Cloud Run, hard-fails fast outside it.
-
-We deliberately do not pull in ``google-auth``: the metadata-server endpoint
-is a single ``httpx.GET`` with one custom header, and ``google-auth`` would
-drag in the synchronous ``requests`` transport stack for no benefit.
+Tokens are valid for 60 minutes; we refresh proactively at 55 to dodge
+edge-of-validity churn. The metadata hop is to a link-local address that
+fast-fails when the process is not running on the platform.
 """
 
 import asyncio

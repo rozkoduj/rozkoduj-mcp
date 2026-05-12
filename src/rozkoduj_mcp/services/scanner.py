@@ -1,9 +1,8 @@
 """Async client for the rozkoduj data API.
 
-Outbound calls authenticate to the API via Cloud Run IAM — the MCP fetches
-a Google-signed ID token from the GCE metadata server and uses it as the
-``Authorization: Bearer`` value. End-user identity (sub / tier / scopes)
-extracted from the inbound MCP JWT rides alongside in ``X-User-*`` headers.
+Outbound calls authenticate with a service-identity token (fetched from
+the platform metadata server). End-user identity extracted from the
+inbound MCP JWT is propagated through separate identity headers.
 
 Token passthrough is forbidden by the MCP 2025-06-18 spec; this module
 never forwards the caller's bearer to the data API.
@@ -121,20 +120,12 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
 
 
 async def _outbound_headers() -> dict[str, str]:
-    """Auth + identity + trace headers for downstream calls to the data API.
+    """Auth, identity, and trace headers for downstream calls.
 
-    * ``Authorization: Bearer <Google ID token>`` proves to the API that
-      the caller is this MCP service (Cloud Run IAM). The token is fetched
-      from the GCE metadata server and cached in :mod:`iam_client`.
-    * ``X-User-Id`` / ``X-User-Tier`` / ``X-User-Scopes`` propagate the
-      end-user identity that this MCP validated on the inbound JWT; the
-      API trusts them *because* the IAM check has just passed.
-    * ``X-Cloud-Trace-Context`` joins MCP + API entries under the same
-      trace id in Cloud Logging.
-
-    Local-dev fallback: when the metadata server is unreachable (no GCE)
-    and ``INTERNAL_API_KEY`` is set, send the legacy transport secret so
-    the developer loop keeps working. Production traffic never lands here.
+    Attaches a service-identity token, end-user identity propagated from
+    the inbound JWT, and the inbound trace header so platform logs join
+    across services. Falls back to a transport secret when the metadata
+    server is unreachable so the local-dev loop keeps working.
     """
     from rozkoduj_mcp.auth import current_user_id, current_user_scopes, current_user_tier
     from rozkoduj_mcp.logging import current_trace_header
