@@ -73,8 +73,9 @@ def _run_http() -> None:
             },
         )
 
-    # Persistent, tier-aware rate limit shared across Cloud Run replicas.
-    # Wired only when Supabase is configured - local dev / tests stay open.
+    # Persistent, tier-aware rate limit shared across replicas via the
+    # rozkoduj data API. Wired only when an INTERNAL_API_KEY is configured -
+    # local dev / tests / self-hosters without a key stay open.
     usage_store = default_store()
     verifier, _ = default_auth()
 

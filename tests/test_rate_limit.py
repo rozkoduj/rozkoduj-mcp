@@ -1,4 +1,4 @@
-"""Tests for rozkoduj_mcp.rate_limit (Supabase-backed hourly quota)."""
+"""Tests for rozkoduj_mcp.rate_limit (pluggable usage store + middleware)."""
 
 from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock
@@ -14,8 +14,9 @@ from starlette.testclient import TestClient
 from rozkoduj_mcp.rate_limit import (
     HOURLY_QUOTAS,
     WINDOW_SECONDS,
+    HttpUsageStore,
+    NoOpUsageStore,
     RateLimitMiddleware,
-    SupabaseUsageStore,
     _extract_ip,
 )
 
@@ -46,7 +47,6 @@ def _build_app(*, store: MagicMock, verifier: MagicMock) -> Starlette:
 
 class TestQuotas:
     def test_tier_ordering(self) -> None:
-        """Free has more headroom than anon; premium more than free."""
         assert HOURLY_QUOTAS["anon"] < HOURLY_QUOTAS["free"]
         assert HOURLY_QUOTAS["free"] < HOURLY_QUOTAS["premium"]
         assert HOURLY_QUOTAS["pro"] >= HOURLY_QUOTAS["premium"]
@@ -64,7 +64,6 @@ class TestAnonymous:
         store.count_recent.assert_awaited_once()
         kwargs = store.count_recent.await_args.kwargs
         assert kwargs["user_id"] is None
-        # IP comes from the test client when no XFF header is set
         assert kwargs["ip"]
 
     def test_anon_at_cap_returns_429(self) -> None:
@@ -80,22 +79,16 @@ class TestAnonymous:
 
 class TestAuthenticated:
     def test_invalid_token_falls_back_to_anon(self) -> None:
-        """Forged/expired tokens are indistinguishable from anonymous."""
         store = _stub_store(count=0)
         verifier = _stub_verifier(None)
         resp = TestClient(_build_app(store=store, verifier=verifier)).post(
             "/mcp", headers={"Authorization": "Bearer forged.jwt"}
         )
         assert resp.status_code == 200
-        # No user_id, no premium tier - identical to anonymous path
         kwargs = store.count_recent.await_args.kwargs
         assert kwargs["user_id"] is None
 
     def test_valid_token_uses_jwt_sub_and_tier(self) -> None:
-        """Valid bearer -> verifier returns AccessToken -> middleware reads
-        sub + tier off the JWT payload (no-verify decode is safe because
-        the verifier already cleared sig/iss/aud/exp upstream).
-        """
         import jwt as pyjwt
         from mcp.server.auth.provider import AccessToken
 
@@ -109,7 +102,6 @@ class TestAuthenticated:
         assert resp.status_code == 200
         kwargs = store.count_recent.await_args.kwargs
         assert kwargs["user_id"] == "user_abc"
-        # Tier flows into the log row.
         log_kwargs = store.log.await_args.kwargs
         assert log_kwargs["tier"] == "premium"
 
@@ -167,94 +159,93 @@ class TestExtractIp:
         assert _extract_ip(request) == "unknown"
 
 
-class TestSupabaseUsageStoreCounting:
+class TestNoOpUsageStore:
     @pytest.mark.anyio
-    async def test_parses_postgrest_content_range(self) -> None:
-        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
+    async def test_count_returns_zero(self) -> None:
+        store = NoOpUsageStore()
+        count = await store.count_recent(user_id=None, ip="x", since_iso="x")
+        assert count == 0
+
+    @pytest.mark.anyio
+    async def test_log_is_noop(self) -> None:
+        store = NoOpUsageStore()
+        result = await store.log(
+            user_id=None, ip="x", tier="anon", endpoint=None, status="success", duration_ms=0
+        )
+        assert result is None
+        await store.aclose()
+
+
+class TestHttpUsageStore:
+    @pytest.mark.anyio
+    async def test_check_posts_payload_with_internal_key(self) -> None:
+        store = HttpUsageStore(base_url="https://api.example/", internal_key="secret")
         mock_resp = MagicMock()
-        mock_resp.headers = {"content-range": "0-99/247"}
         mock_resp.raise_for_status = MagicMock()
-        store._client.get = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
+        mock_resp.json = MagicMock(return_value={"count": 42})
+        store._client.post = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
         try:
             count = await store.count_recent(
-                user_id=None, ip="1.2.3.4", since_iso="2026-01-01T00:00:00+00:00"
+                user_id="u1", ip="1.2.3.4", since_iso="2026-05-12T00:00:00+00:00"
             )
-            assert count == 247
-            # Anonymous path: query must filter user_id IS NULL plus ip = X
-            params = store._client.get.await_args.kwargs["params"]
-            assert params["ip"] == "eq.1.2.3.4"
-            assert params["user_id"] == "is.null"
+            assert count == 42
+            args, kwargs = store._client.post.await_args
+            assert args[0] == "https://api.example/usage/check"
+            assert kwargs["headers"]["X-Internal-Key"] == "secret"
+            assert kwargs["json"]["user_id"] == "u1"
+            assert kwargs["json"]["ip"] == "1.2.3.4"
         finally:
             await store.aclose()
 
     @pytest.mark.anyio
-    async def test_authed_query_filters_by_user_id(self) -> None:
-        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
-        mock_resp = MagicMock()
-        mock_resp.headers = {"content-range": "0-0/5"}
-        mock_resp.raise_for_status = MagicMock()
-        store._client.get = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
-        try:
-            await store.count_recent(
-                user_id="user_xyz", ip="1.2.3.4", since_iso="2026-01-01T00:00:00+00:00"
-            )
-            params = store._client.get.await_args.kwargs["params"]
-            assert params["user_id"] == "eq.user_xyz"
-            assert "ip" not in params
-        finally:
-            await store.aclose()
-
-    @pytest.mark.anyio
-    async def test_fails_open_on_http_error(self) -> None:
+    async def test_check_fails_open_on_http_error(self) -> None:
         import httpx
 
-        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
-        store._client.get = AsyncMock(side_effect=httpx.ConnectError("down"))  # type: ignore[method-assign]
+        store = HttpUsageStore(base_url="https://api.example", internal_key="secret")
+        store._client.post = AsyncMock(  # type: ignore[method-assign]
+            side_effect=httpx.ConnectError("down")
+        )
         try:
-            count = await store.count_recent(
-                user_id=None, ip="1.2.3.4", since_iso="2026-01-01T00:00:00+00:00"
-            )
+            count = await store.count_recent(user_id=None, ip="x", since_iso="x")
             assert count == 0
         finally:
             await store.aclose()
 
     @pytest.mark.anyio
-    async def test_malformed_content_range_returns_zero(self) -> None:
-        """Garbled Content-Range header must fail open, not 500 the request."""
-        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
+    async def test_check_missing_count_field_returns_zero(self) -> None:
+        store = HttpUsageStore(base_url="https://api.example", internal_key="secret")
         mock_resp = MagicMock()
-        mock_resp.headers = {"content-range": "not-a-number"}
         mock_resp.raise_for_status = MagicMock()
-        store._client.get = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
+        mock_resp.json = MagicMock(return_value={})
+        store._client.post = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
         try:
-            count = await store.count_recent(
-                user_id=None, ip="1.2.3.4", since_iso="2026-01-01T00:00:00+00:00"
-            )
+            count = await store.count_recent(user_id=None, ip="x", since_iso="x")
             assert count == 0
         finally:
             await store.aclose()
 
     @pytest.mark.anyio
-    async def test_log_posts_to_service_usage(self) -> None:
-        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
+    async def test_log_posts_full_row(self) -> None:
+        store = HttpUsageStore(base_url="https://api.example", internal_key="secret")
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
         store._client.post = AsyncMock(return_value=mock_resp)  # type: ignore[method-assign]
         try:
             await store.log(
-                user_id=None,
+                user_id="u1",
                 ip="1.2.3.4",
-                tier="anon",
-                endpoint=None,
+                tier="premium",
+                endpoint="scan",
                 status="success",
                 duration_ms=42,
             )
-            store._client.post.assert_awaited_once()
-            assert "/service_usage" in store._client.post.await_args.args[0]
-            row = store._client.post.await_args.kwargs["json"]
-            assert row["service"] == "mcp"
-            assert row["tier"] == "anon"
-            assert row["status"] == "success"
+            args, kwargs = store._client.post.await_args
+            assert args[0] == "https://api.example/usage/log"
+            row = kwargs["json"]
+            assert row["user_id"] == "u1"
+            assert row["tier"] == "premium"
+            assert row["endpoint"] == "scan"
+            assert row["duration_ms"] == 42
         finally:
             await store.aclose()
 
@@ -262,10 +253,11 @@ class TestSupabaseUsageStoreCounting:
     async def test_log_swallows_http_error(self) -> None:
         import httpx
 
-        store = SupabaseUsageStore(url="https://test.supabase.co", key="test")
-        store._client.post = AsyncMock(side_effect=httpx.ConnectError("down"))  # type: ignore[method-assign]
+        store = HttpUsageStore(base_url="https://api.example", internal_key="secret")
+        store._client.post = AsyncMock(  # type: ignore[method-assign]
+            side_effect=httpx.ConnectError("down")
+        )
         try:
-            # Must not raise - logging is best-effort.
             await store.log(
                 user_id=None, ip="x", tier="anon", endpoint=None, status="error", duration_ms=0
             )
@@ -274,20 +266,21 @@ class TestSupabaseUsageStoreCounting:
 
 
 class TestDefaultStore:
-    def test_returns_none_when_env_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_returns_none_when_internal_key_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from rozkoduj_mcp.rate_limit import default_store
 
-        monkeypatch.delenv("SUPABASE_URL", raising=False)
-        monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
+        monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
         assert default_store() is None
 
-    def test_builds_store_when_env_present(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_builds_http_store_when_internal_key_present(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from rozkoduj_mcp.rate_limit import default_store
 
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SECRET_KEY", "secret")
+        monkeypatch.setenv("INTERNAL_API_KEY", "secret")
+        monkeypatch.setenv("ROZKODUJ_API_URL", "https://api.example")
         store = default_store()
-        assert store is not None
+        assert isinstance(store, HttpUsageStore)
 
 
 @pytest.fixture

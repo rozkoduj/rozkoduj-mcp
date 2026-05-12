@@ -1,16 +1,13 @@
-"""Per-tier hourly rate limiting backed by Supabase service_usage.
+"""Per-tier hourly rate limiting via a pluggable usage store.
 
-Mirrors the rozkoduj-web chat_usage pattern - one row per request, quota
-check = COUNT(rows in last hour) >= tier cap. Cold-start safe (Cloud Run
-in-process state dies on every revision); cross-instance safe (single
-source of truth for any number of replicas).
+Quota policy lives here; storage is delegated to a ``UsageStore`` so the
+public package never names the backend it talks to. The hosted instance
+wires ``HttpUsageStore`` pointing at the rozkoduj data API; self-hosters
+get ``NoOpUsageStore`` by default and can ship their own implementation.
 
-Tier identification uses the same JWKSTokenVerifier the MCP transport
-relies on. Forged tokens fail FastMCP auth before any tool runs, so it
-is safe to trust the verified `tier` claim for quota selection.
-
-Falls open when SUPABASE_URL / SUPABASE_SECRET_KEY are not configured -
-local dev and unit tests keep working without the ledger.
+Identity comes from the same JWKSTokenVerifier the MCP transport relies
+on - forged tokens fail FastMCP auth before any tool runs, so the
+verified ``tier`` claim is safe to trust for quota selection.
 """
 
 import logging
@@ -18,7 +15,7 @@ import os
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 import httpx
 import jwt
@@ -31,9 +28,8 @@ from rozkoduj_mcp.auth import JWKSTokenVerifier
 
 logger = logging.getLogger(__name__)
 
-# Per-hour ceilings. Same proportions as the rozkoduj-web chat ledger
-# (anon : logged ~= 1 : 6), extended with a premium tier for paying users.
-# Conservative pre-launch numbers - bumpable without a schema change.
+# Per-hour ceilings. Conservative pre-launch numbers - bumpable without a
+# schema change on either side of the wire.
 HOURLY_QUOTAS: dict[str, int] = {
     "anon": 20,
     "free": 120,
@@ -42,57 +38,47 @@ HOURLY_QUOTAS: dict[str, int] = {
 }
 
 WINDOW_SECONDS = 3600
-SERVICE = "mcp"
 
-# Outer Starlette routes handle these without touching MCP - never count.
 # Discovery endpoints are public by spec and must not require auth or
 # burn quota (clients probe them before they have a token).
 _SKIP_PATHS: frozenset[str] = frozenset({"/robots.txt", "/health", "/.well-known/mcp.json"})
 
 
-class SupabaseUsageStore:
-    """REST client for the service_usage table."""
+class UsageStore(Protocol):
+    """Pluggable rate-limit + audit backend.
 
-    def __init__(self, *, url: str, key: str, http_timeout: float = 5.0) -> None:
-        self._rest_url = f"{url}/rest/v1"
-        self._headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        }
-        self._client = httpx.AsyncClient(timeout=http_timeout)
+    Implementations decide where rows live. Both methods fail open - the
+    middleware treats backend errors as "no data, let the request through"
+    so a transient backend blip never wedges live traffic.
+    """
 
-    async def aclose(self) -> None:
-        await self._client.aclose()
+    async def count_recent(self, *, user_id: str | None, ip: str, since_iso: str) -> int: ...
+
+    async def log(
+        self,
+        *,
+        user_id: str | None,
+        ip: str,
+        tier: str,
+        endpoint: str | None,
+        status: str,
+        duration_ms: int | None,
+    ) -> None: ...
+
+    async def aclose(self) -> None: ...
+
+
+class NoOpUsageStore:
+    """Default store for self-hosters - no counting, no logging.
+
+    Returns 0 from ``count_recent`` so the middleware never blocks, and
+    discards ``log`` calls. Self-hosters who want real quota enforcement
+    plug in their own ``UsageStore`` implementation (Redis, Postgres,
+    Memcached - whatever fits their stack).
+    """
 
     async def count_recent(self, *, user_id: str | None, ip: str, since_iso: str) -> int:
-        params: dict[str, str] = {
-            "select": "id",
-            "service": f"eq.{SERVICE}",
-            "created_at": f"gte.{since_iso}",
-        }
-        if user_id:
-            params["user_id"] = f"eq.{user_id}"
-        else:
-            params["ip"] = f"eq.{ip}"
-            params["user_id"] = "is.null"
-        try:
-            resp = await self._client.get(
-                f"{self._rest_url}/service_usage",
-                params=params,
-                headers={**self._headers, "Prefer": "count=exact"},
-            )
-            resp.raise_for_status()
-        except httpx.HTTPError as exc:
-            logger.warning("rate_limit_count_failed: %s", exc)
-            return 0
-        # PostgREST returns Content-Range: 0-N/total when Prefer: count=exact.
-        # Fail-open on parse issues - blocking real traffic on a parse bug is worse.
-        cr = resp.headers.get("content-range", "*/0")
-        try:
-            return int(cr.rsplit("/", 1)[-1])
-        except ValueError:
-            return 0
+        return 0
 
     async def log(
         self,
@@ -104,24 +90,64 @@ class SupabaseUsageStore:
         status: str,
         duration_ms: int | None,
     ) -> None:
-        row = {
-            "service": SERVICE,
-            "user_id": user_id,
-            "ip": ip,
-            "tier": tier,
-            "endpoint": endpoint,
-            "status": status,
-            "duration_ms": duration_ms,
-        }
+        return None
+
+    async def aclose(self) -> None:
+        return None
+
+
+class HttpUsageStore:
+    """Forwards quota checks + audit rows to the rozkoduj data API."""
+
+    def __init__(self, *, base_url: str, internal_key: str, http_timeout: float = 5.0) -> None:
+        self._check_url = f"{base_url.rstrip('/')}/usage/check"
+        self._log_url = f"{base_url.rstrip('/')}/usage/log"
+        self._headers = {"X-Internal-Key": internal_key, "Content-Type": "application/json"}
+        self._client = httpx.AsyncClient(timeout=http_timeout)
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
+    async def count_recent(self, *, user_id: str | None, ip: str, since_iso: str) -> int:
         try:
             resp = await self._client.post(
-                f"{self._rest_url}/service_usage",
-                json=row,
+                self._check_url,
+                json={"user_id": user_id, "ip": ip, "since_iso": since_iso},
                 headers=self._headers,
             )
             resp.raise_for_status()
         except httpx.HTTPError as exc:
-            logger.warning("rate_limit_log_failed: %s", exc)
+            logger.warning("usage_check_failed: %s", exc)
+            return 0
+        body: dict[str, Any] = resp.json()
+        return int(body.get("count", 0))
+
+    async def log(
+        self,
+        *,
+        user_id: str | None,
+        ip: str,
+        tier: str,
+        endpoint: str | None,
+        status: str,
+        duration_ms: int | None,
+    ) -> None:
+        try:
+            resp = await self._client.post(
+                self._log_url,
+                json={
+                    "user_id": user_id,
+                    "ip": ip,
+                    "tier": tier,
+                    "endpoint": endpoint,
+                    "status": status,
+                    "duration_ms": duration_ms,
+                },
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.warning("usage_log_failed: %s", exc)
 
 
 def _extract_ip(request: Request) -> str:
@@ -142,7 +168,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self,
         app: ASGIApp,
         *,
-        store: SupabaseUsageStore,
+        store: UsageStore,
         verifier: JWKSTokenVerifier,
     ) -> None:
         super().__init__(app)
@@ -203,9 +229,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         access_token = await self._verifier.verify_token(token)
         if access_token is None:
             return None, "anon"
-        # `verify_token` validates sig/iss/aud/exp but doesn't expose the
-        # tier claim. The payload is already trustworthy at this point,
-        # so a no-verify decode is safe to read the remaining claims.
         try:
             payload: dict[str, Any] = jwt.decode(token, options={"verify_signature": False})
         except jwt.PyJWTError:  # pragma: no cover - verify_token already cleared sig + structure
@@ -216,15 +239,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return user_id, tier
 
 
-def default_store() -> SupabaseUsageStore | None:
-    """Build a usage store from environment, or None when not configured.
+def default_store() -> UsageStore | None:
+    """Build the usage store from environment, or ``None`` when unconfigured.
 
-    Local dev and unit tests skip Supabase entirely - no env vars set,
-    middleware is never wired and the server stays reachable without
-    side-effects. Cloud Run injects both vars; production always rate-limits.
+    Returns ``HttpUsageStore`` when both ``ROZKODUJ_API_URL`` and
+    ``INTERNAL_API_KEY`` are set (hosted deployment). Returns ``None``
+    otherwise so local dev, unit tests, and self-hosters keep running
+    without the middleware attached. Self-hosters who want rate limits
+    can wire their own ``UsageStore`` implementation directly.
     """
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SECRET_KEY")
-    if not url or not key:
+    internal_key = os.environ.get("INTERNAL_API_KEY")
+    if not internal_key:
         return None
-    return SupabaseUsageStore(url=url, key=key)
+    base_url = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
+    return HttpUsageStore(base_url=base_url, internal_key=internal_key)
