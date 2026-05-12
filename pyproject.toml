@@ -76,6 +76,14 @@ python_version = "3.14"
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
+# Untyped JSON boundary: scanner.py wraps the data API and intentionally
+# returns Any from the _post/_get helpers, then re-types at the public
+# function signatures. Silencing one rule for one module beats 11 inline
+# `# type: ignore` comments.
+[[tool.mypy.overrides]]
+module = "rozkoduj_mcp.services.scanner"
+disable_error_code = ["no-any-return"]
+
 [tool.pytest.ini_options]
 addopts = ["-ra", "-q", "--strict-markers", "--import-mode=importlib"]
 testpaths = ["tests"]

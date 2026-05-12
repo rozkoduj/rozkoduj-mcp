@@ -86,22 +86,39 @@ class JWKSTokenVerifier(TokenVerifier):
         # (Ed25519/Ed448), and EC keys all work without per-type branching.
         return jwt.PyJWK(jwk).key
 
+    async def _decode_with_rotation_retry(self, token: str, kid: str) -> dict[str, Any] | None:
+        """Decode ``token`` against the JWKS, force-refreshing once on signature
+        failure so a freshly rotated signing key is picked up before the cached
+        TTL expires (otherwise auth would 401 for up to ``jwks_ttl_seconds``
+        after every rotation).
+        """
+        for attempt in range(2):
+            key = await self._get_signing_key(kid)
+            if key is None:
+                return None
+            try:
+                return jwt.decode(
+                    token,
+                    key=key,
+                    algorithms=_ACCEPTED_ALGS,
+                    issuer=self._issuer,
+                    audience=self._audience,
+                )
+            except jwt.InvalidSignatureError:
+                if attempt == 1:
+                    return None
+                await self._refresh_jwks()
+        return None  # pragma: no cover
+
     async def verify_token(self, token: str) -> AccessToken | None:
         try:
             header = jwt.get_unverified_header(token)
             kid = header.get("kid")
             if not isinstance(kid, str):
                 return None
-            key = await self._get_signing_key(kid)
-            if key is None:
+            payload = await self._decode_with_rotation_retry(token, kid)
+            if payload is None:
                 return None
-            payload = jwt.decode(
-                token,
-                key=key,
-                algorithms=_ACCEPTED_ALGS,
-                issuer=self._issuer,
-                audience=self._audience,
-            )
         except jwt.PyJWTError, httpx.HTTPError, ValueError, KeyError:
             return None
 

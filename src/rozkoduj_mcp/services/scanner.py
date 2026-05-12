@@ -14,11 +14,21 @@ client: httpx.AsyncClient | None = None
 _MAX_CONCURRENT_REQUESTS = 4
 _request_semaphore: asyncio.Semaphore | None = None
 
+# Retry only on connection-level failures (DNS hiccup, dropped socket,
+# read-before-headers). httpx does not retry on response status codes, which
+# is what we want - 4xx/5xx are deterministic, retrying them just doubles
+# latency before surfacing the same error.
+_TRANSPORT_RETRIES = 2
+
 
 def setup_client(api_url: str, timeout: float = 20.0) -> httpx.AsyncClient:
     """Create the module-level httpx client. Called from each transport's lifespan."""
     global client, _request_semaphore
-    client = httpx.AsyncClient(base_url=api_url, timeout=timeout)
+    client = httpx.AsyncClient(
+        base_url=api_url,
+        timeout=timeout,
+        transport=httpx.AsyncHTTPTransport(retries=_TRANSPORT_RETRIES),
+    )
     _request_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_REQUESTS)
     return client
 
@@ -40,15 +50,9 @@ def _get_client() -> httpx.AsyncClient:
 
 
 def _get_semaphore() -> asyncio.Semaphore:
-    """Return the concurrency semaphore, lazily creating it if needed.
-
-    setup_client() pre-creates the semaphore for production lifespans; lazy
-    creation here keeps unit tests that patch only `client` working without
-    forcing every test to call setup_client.
-    """
-    global _request_semaphore
     if _request_semaphore is None:
-        _request_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_REQUESTS)
+        msg = "scanner._request_semaphore not initialized - server lifespan not started"
+        raise RuntimeError(msg)
     return _request_semaphore
 
 
@@ -85,7 +89,7 @@ async def scan_market(
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     """Screen a market. Returns one dict per matched ticker."""
-    return await _post(  # type: ignore[no-any-return]
+    return await _post(
         "/scan",
         f"market {market!r}",
         json={
@@ -101,14 +105,14 @@ async def scan_market(
 
 async def analyze(symbol: str, interval: str = "1d") -> dict[str, Any]:
     """Fetch technical analysis for a single symbol."""
-    return await _post("/analyze", symbol, json={"symbol": symbol, "interval": interval})  # type: ignore[no-any-return]
+    return await _post("/analyze", symbol, json={"symbol": symbol, "interval": interval})
 
 
 async def movers(
     market: str = "crypto", direction: str = "gainers", limit: int = 10
 ) -> dict[str, Any]:
     """Top gainers/losers."""
-    return await _post(  # type: ignore[no-any-return]
+    return await _post(
         "/movers",
         f"movers {market}/{direction}",
         json={"market": market, "direction": direction, "limit": limit},
@@ -117,12 +121,12 @@ async def movers(
 
 async def score(symbol: str, interval: str = "1d") -> dict[str, Any]:
     """Get holistic 0-100 score for a symbol."""
-    return await _post("/score", f"score {symbol}", json={"symbol": symbol, "interval": interval})  # type: ignore[no-any-return]
+    return await _post("/score", f"score {symbol}", json={"symbol": symbol, "interval": interval})
 
 
 async def fundamentals(symbol: str) -> dict[str, Any]:
     """Fetch fundamental data for a symbol."""
-    return await _post("/fundamentals", f"fundamentals {symbol}", json={"symbol": symbol})  # type: ignore[no-any-return]
+    return await _post("/fundamentals", f"fundamentals {symbol}", json={"symbol": symbol})
 
 
 async def buzz(query: str, lang: str = "en", wiki_article: str | None = None) -> dict[str, Any]:
@@ -130,17 +134,17 @@ async def buzz(query: str, lang: str = "en", wiki_article: str | None = None) ->
     params: dict[str, str | int] = {"query": query, "lang": lang}
     if wiki_article:
         params["wiki_article"] = wiki_article
-    return await _get("/buzz", f"buzz {query}", params=params)  # type: ignore[no-any-return]
+    return await _get("/buzz", f"buzz {query}", params=params)
 
 
 async def market_pulse() -> dict[str, Any]:
     """Get market regime: stocks + crypto fear/greed + VIX."""
-    return await _get("/market-pulse", "market-pulse")  # type: ignore[no-any-return]
+    return await _get("/market-pulse", "market-pulse")
 
 
 async def calendar(days: int = 7, countries: str = "US", importance: int = 0) -> dict[str, Any]:
     """Fetch economic calendar events."""
-    return await _get(  # type: ignore[no-any-return]
+    return await _get(
         "/calendar",
         "calendar",
         params={"days": days, "countries": countries, "importance": importance},
@@ -152,7 +156,7 @@ async def digest(market: str | None = None, limit: int = 20) -> dict[str, Any]:
     params: dict[str, str | int] = {"limit": limit}
     if market:
         params["market"] = market
-    return await _get("/digest", f"digest {market or 'global'}", params=params)  # type: ignore[no-any-return]
+    return await _get("/digest", f"digest {market or 'global'}", params=params)
 
 
 async def decode(symbol: str, query: str = "", lang: str = "en") -> dict[str, Any]:
@@ -162,7 +166,7 @@ async def decode(symbol: str, query: str = "", lang: str = "en") -> dict[str, An
         params["query"] = query
     if lang != "en":
         params["lang"] = lang
-    return await _get("/decode", f"decode {symbol}", params=params)  # type: ignore[no-any-return]
+    return await _get("/decode", f"decode {symbol}", params=params)
 
 
 async def list_strategies(
@@ -184,14 +188,12 @@ async def list_strategies(
     }
     if family:
         params["family"] = family
-    return await _get("/strategies", "list strategies", params=params)  # type: ignore[no-any-return]
+    return await _get("/strategies", "list strategies", params=params)
 
 
 async def strategy_details(identifier: str) -> dict[str, Any]:
     """Fetch single Rozkoduj strategy by slug or algorithm_uid."""
-    return await _get(  # type: ignore[no-any-return]
-        f"/strategies/{identifier}", f"strategy {identifier}"
-    )
+    return await _get(f"/strategies/{identifier}", f"strategy {identifier}")
 
 
 async def search_articles(query: str, locale: str | None = None, limit: int = 5) -> dict[str, Any]:
@@ -199,33 +201,41 @@ async def search_articles(query: str, locale: str | None = None, limit: int = 5)
     payload: dict[str, Any] = {"query": query, "limit": limit}
     if locale:
         payload["locale"] = locale
-    return await _post("/articles/search", "search articles", json=payload)  # type: ignore[no-any-return]
+    return await _post("/articles/search", "search articles", json=payload)
 
 
 def _outbound_headers(*, internal_fallback: bool = False) -> dict[str, str]:
-    """Auth headers for downstream calls, preferring the caller's bearer token.
+    """Auth + trace headers for downstream calls.
 
-    When a bearer token is bound to the current request, forward it so the
-    downstream resource server can apply its own access controls.
-    ``internal_fallback`` lets legacy paths that haven't been migrated to
-    end-user tokens fall back to a transport secret. Returns ``{}`` when
-    nothing is available; the downstream service decides how to respond.
+    Forwards the caller's bearer token (so the API can apply its own
+    per-user access controls) and the inbound trace header (so Cloud Logging
+    joins MCP and API entries under the same trace_id). Falls back to the
+    transport secret only when ``internal_fallback`` is set and no end-user
+    token is in flight.
     """
     from rozkoduj_mcp.auth import current_token_string
+    from rozkoduj_mcp.logging import current_trace_header
+
+    headers: dict[str, str] = {}
 
     token = current_token_string()
     if token is not None:
-        return {"Authorization": f"Bearer {token}"}
-    if internal_fallback:
+        headers["Authorization"] = f"Bearer {token}"
+    elif internal_fallback:
         key = os.environ.get("INTERNAL_API_KEY")
         if key:
-            return {"X-Internal-Key": key}
-    return {}
+            headers["X-Internal-Key"] = key
+
+    trace = current_trace_header.get()
+    if trace:
+        headers["X-Cloud-Trace-Context"] = trace
+
+    return headers
 
 
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
     """Search Rozkoduj's extended knowledge base (auth-gated)."""
-    return await _post(  # type: ignore[no-any-return]
+    return await _post(
         "/knowledge/search",
         "search knowledge",
         json={"query": query, "limit": limit},
