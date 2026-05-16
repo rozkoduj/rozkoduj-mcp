@@ -107,7 +107,9 @@ class TestVerifyToken:
         assert result.expires_at is not None
 
     @pytest.mark.anyio
-    async def test_scope_as_list(self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]) -> None:
+    async def test_scope_as_list(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
         token = _sign(private, scope=["mcp:read", "mcp:write"])
@@ -230,7 +232,9 @@ class TestJWKSRotationRetry:
             verifier._jwks_keys = {_KID: new_jwk}
             verifier._jwks_fetched_at = time.monotonic()
 
-        with patch.object(verifier, "_refresh_jwks", new=AsyncMock(side_effect=_swap_to_new_key)):
+        with patch.object(
+            verifier, "_refresh_jwks", new=AsyncMock(side_effect=_swap_to_new_key)
+        ):
             token = _sign(new_key)
             result = await verifier.verify_token(token)
 

@@ -74,7 +74,9 @@ def _run_http() -> None:
 
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
-        scanner.setup_client(os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com"))
+        scanner.setup_client(
+            os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
+        )
         async with mcp.session_manager.run():
             try:
                 yield

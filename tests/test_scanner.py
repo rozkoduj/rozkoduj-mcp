@@ -107,7 +107,9 @@ class TestScanMarket:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_429_surfaces_rate_limit_with_retry_after(self, mock_client: AsyncMock) -> None:
+    async def test_429_surfaces_rate_limit_with_retry_after(
+        self, mock_client: AsyncMock
+    ) -> None:
         mock_client.post = AsyncMock(return_value=_mock_429_response("1800"))
 
         with pytest.raises(RuntimeError, match=r"Rate limit exceeded.*1800"):
@@ -115,7 +117,9 @@ class TestScanMarket:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_429_without_retry_after_falls_back(self, mock_client: AsyncMock) -> None:
+    async def test_429_without_retry_after_falls_back(
+        self, mock_client: AsyncMock
+    ) -> None:
         mock_client.post = AsyncMock(return_value=_mock_429_response(retry_after=None))
 
         with pytest.raises(RuntimeError, match=r"Rate limit exceeded.*later"):
@@ -123,7 +127,9 @@ class TestScanMarket:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_non_429_status_error_raises_generic(self, mock_client: AsyncMock) -> None:
+    async def test_non_429_status_error_raises_generic(
+        self, mock_client: AsyncMock
+    ) -> None:
         mock_client.post = AsyncMock(return_value=_mock_status_error_response(503))
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
@@ -200,7 +206,9 @@ class TestScore:
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_symbol_and_interval(self, mock_client: AsyncMock) -> None:
         mock_client.post = AsyncMock(
-            return_value=_mock_response({"symbol": "AAPL", "score": 78.0, "label": "BUY"})
+            return_value=_mock_response(
+                {"symbol": "AAPL", "score": 78.0, "label": "BUY"}
+            )
         )
 
         result = await score(symbol="AAPL", interval="1d")
@@ -326,7 +334,9 @@ class TestMarketPulse:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_429_surfaces_rate_limit_with_retry_after(self, mock_client: AsyncMock) -> None:
+    async def test_429_surfaces_rate_limit_with_retry_after(
+        self, mock_client: AsyncMock
+    ) -> None:
         mock_client.get = AsyncMock(return_value=_mock_429_response("900"))
 
         with pytest.raises(RuntimeError, match=r"Rate limit exceeded.*900"):
@@ -334,7 +344,9 @@ class TestMarketPulse:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_non_429_status_error_raises_generic(self, mock_client: AsyncMock) -> None:
+    async def test_non_429_status_error_raises_generic(
+        self, mock_client: AsyncMock
+    ) -> None:
         mock_client.get = AsyncMock(return_value=_mock_status_error_response(502))
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
@@ -347,7 +359,9 @@ class TestCalendar:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_params(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(return_value=_mock_response({"count": 0, "events": []}))
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"count": 0, "events": []})
+        )
 
         await calendar(days=14, countries="US,EU", importance=1)
 
@@ -380,7 +394,9 @@ class TestDigestScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_default_params(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(return_value=_mock_response({"gems": [], "scope": "global"}))
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"gems": [], "scope": "global"})
+        )
 
         result = await digest()
 
@@ -392,7 +408,9 @@ class TestDigestScanner:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_with_market(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(return_value=_mock_response({"gems": [], "scope": "crypto"}))
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"gems": [], "scope": "crypto"})
+        )
 
         result = await digest(market="crypto")
 
@@ -494,7 +512,9 @@ class TestListStrategies:
     async def test_sends_params(self, mock_client: AsyncMock) -> None:
         from rozkoduj_mcp.services.scanner import list_strategies
 
-        mock_client.get = AsyncMock(return_value=_mock_response({"items": [], "total": 0}))
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"items": [], "total": 0})
+        )
 
         await list_strategies(
             status="active", sort="sharpe_desc", visibility="public", limit=10, offset=0
@@ -513,7 +533,9 @@ class TestListStrategies:
     async def test_family_included_when_set(self, mock_client: AsyncMock) -> None:
         from rozkoduj_mcp.services.scanner import list_strategies
 
-        mock_client.get = AsyncMock(return_value=_mock_response({"items": [], "total": 0}))
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"items": [], "total": 0})
+        )
 
         await list_strategies(family="ma_cross")
 
@@ -529,7 +551,9 @@ class TestStrategyDetails:
     async def test_calls_correct_path(self, mock_client: AsyncMock) -> None:
         from rozkoduj_mcp.services.scanner import strategy_details
 
-        mock_client.get = AsyncMock(return_value=_mock_response({"slug": "ma-cross-ema"}))
+        mock_client.get = AsyncMock(
+            return_value=_mock_response({"slug": "ma-cross-ema"})
+        )
 
         await strategy_details("ma-cross-ema")
 
@@ -545,7 +569,9 @@ class TestSearchArticles:
     async def test_sends_payload(self, mock_client: AsyncMock) -> None:
         from rozkoduj_mcp.services.scanner import search_articles
 
-        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
 
         await search_articles(query="momentum", locale="en", limit=3)
 
@@ -559,7 +585,9 @@ class TestSearchArticles:
     async def test_locale_omitted_when_none(self, mock_client: AsyncMock) -> None:
         from rozkoduj_mcp.services.scanner import search_articles
 
-        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
 
         await search_articles(query="q")
 
@@ -580,7 +608,9 @@ class TestSearchKnowledge:
         from rozkoduj_mcp.services.scanner import search_knowledge
 
         monkeypatch.setenv("INTERNAL_API_KEY", "secret")
-        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
 
         await search_knowledge(query="risk", limit=2)
 
@@ -607,12 +637,16 @@ class TestSearchKnowledge:
         from rozkoduj_mcp.services.scanner import search_knowledge
 
         monkeypatch.setenv("INTERNAL_API_KEY", "should-not-be-used")
-        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
         user_reset = current_user_id.set("user-42")
         tier_reset = current_user_tier.set("pro")
         scopes_reset = current_user_scopes.set("mcp:read mcp:knowledge:read")
         try:
-            with patch.object(iam_client, "_fetch", new=AsyncMock(return_value="iam-token-xyz")):
+            with patch.object(
+                iam_client, "_fetch", new=AsyncMock(return_value="iam-token-xyz")
+            ):
                 iam_client.reset_cache()
                 await search_knowledge(query="x", limit=1)
         finally:
@@ -639,7 +673,9 @@ class TestSearchKnowledge:
         from rozkoduj_mcp.services.scanner import search_knowledge
 
         monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
-        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
 
         await search_knowledge(query="x")
 
@@ -659,7 +695,9 @@ class TestSearchKnowledge:
         from rozkoduj_mcp.services.scanner import search_knowledge
 
         monkeypatch.setenv("INTERNAL_API_KEY", "key-xyz")
-        mock_client.post = AsyncMock(return_value=_mock_response({"query": "q", "items": []}))
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
 
         token = current_trace_header.set("trace-abc/0;o=1")
         try:

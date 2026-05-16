@@ -39,4 +39,10 @@ class TestFundamentals:
 
         result = await fundamentals("AAPL")
 
-        assert set(result) >= {"valuation", "quality", "analyst", "earnings", "dividends"}
+        assert set(result) >= {
+            "valuation",
+            "quality",
+            "analyst",
+            "earnings",
+            "dividends",
+        }

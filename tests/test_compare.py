@@ -58,7 +58,9 @@ class TestCompare:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.compare.scanner")
-    async def test_partial_failure_marks_failed_symbols(self, mock_scanner: MagicMock) -> None:
+    async def test_partial_failure_marks_failed_symbols(
+        self, mock_scanner: MagicMock
+    ) -> None:
         mock_scanner.analyze = AsyncMock(
             side_effect=[
                 mock_analysis("BUY"),

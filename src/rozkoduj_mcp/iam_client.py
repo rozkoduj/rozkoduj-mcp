@@ -33,7 +33,9 @@ _CACHE_TTL_SECONDS: Final[float] = 3300.0
 
 # Default audience matches what the data API expects to see in the token's
 # ``aud`` claim. The API URL is the canonical Cloud Run service URL.
-_DEFAULT_AUDIENCE: Final[str] = os.environ.get("ROZKODUJ_API_AUDIENCE", "https://api.rozkoduj.com")
+_DEFAULT_AUDIENCE: Final[str] = os.environ.get(
+    "ROZKODUJ_API_AUDIENCE", "https://api.rozkoduj.com"
+)
 
 _cached_token: str | None = None
 _cached_at: float = 0.0

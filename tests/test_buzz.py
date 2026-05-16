@@ -25,7 +25,9 @@ class TestBuzz:
 
         result = await buzz("AAPL stock", lang="en")
 
-        mock_scanner.buzz.assert_called_once_with("AAPL stock", lang="en", wiki_article=None)
+        mock_scanner.buzz.assert_called_once_with(
+            "AAPL stock", lang="en", wiki_article=None
+        )
         assert result["attention"] == "HIGH"
 
     @pytest.mark.anyio
@@ -35,7 +37,9 @@ class TestBuzz:
 
         await buzz("AAPL", wiki_article="Apple_Inc")
 
-        mock_scanner.buzz.assert_called_once_with("AAPL", lang="en", wiki_article="Apple_Inc")
+        mock_scanner.buzz.assert_called_once_with(
+            "AAPL", lang="en", wiki_article="Apple_Inc"
+        )
 
     @pytest.mark.anyio
     async def test_rejects_long_query(self) -> None:

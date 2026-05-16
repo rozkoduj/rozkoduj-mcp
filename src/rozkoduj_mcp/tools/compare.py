@@ -42,7 +42,9 @@ async def compare(
             {
                 "symbol": data.get("symbol", sym),
                 "exchange": data.get("exchange", ""),
-                "recommendation": data.get("summary", {}).get("recommendation", "NEUTRAL"),
+                "recommendation": data.get("summary", {}).get(
+                    "recommendation", "NEUTRAL"
+                ),
                 "rsi": data.get("indicators", {}).get("RSI"),
                 "macd": data.get("indicators", {}).get("macd"),
                 "macd_signal": data.get("indicators", {}).get("macd_signal"),

@@ -82,7 +82,9 @@ class TestMultitf:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.multitf.scanner")
-    async def test_partial_failure_drops_failed_timeframes(self, mock_scanner: MagicMock) -> None:
+    async def test_partial_failure_drops_failed_timeframes(
+        self, mock_scanner: MagicMock
+    ) -> None:
         mock_scanner.analyze = AsyncMock(
             side_effect=[
                 mock_analysis("BUY"),

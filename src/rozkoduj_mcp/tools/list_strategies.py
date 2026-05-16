@@ -10,7 +10,9 @@ from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def list_strategies(
     status: Literal["active", "archived", "all"] = "active",
-    sort: Literal["sharpe_desc", "cagr_desc", "total_return_desc", "recent"] = "sharpe_desc",
+    sort: Literal[
+        "sharpe_desc", "cagr_desc", "total_return_desc", "recent"
+    ] = "sharpe_desc",
     visibility: Literal["public", "all"] = "public",
     family: str | None = None,
     limit: int = 20,

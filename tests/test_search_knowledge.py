@@ -44,7 +44,9 @@ def _mock_result() -> dict[str, Any]:
 class TestSearchKnowledge:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.search_knowledge.scanner")
-    async def test_returns_results(self, mock_scanner: AsyncMock, authorized_caller: None) -> None:
+    async def test_returns_results(
+        self, mock_scanner: AsyncMock, authorized_caller: None
+    ) -> None:
         mock_scanner.search_knowledge = AsyncMock(return_value=_mock_result())
 
         result = await search_knowledge(query="risk", limit=3)
@@ -57,7 +59,9 @@ class TestSearchKnowledge:
     async def test_default_limit_is_five(
         self, mock_scanner: AsyncMock, authorized_caller: None
     ) -> None:
-        mock_scanner.search_knowledge = AsyncMock(return_value={"query": "q", "items": []})
+        mock_scanner.search_knowledge = AsyncMock(
+            return_value={"query": "q", "items": []}
+        )
 
         await search_knowledge(query="anything")
 
@@ -65,8 +69,12 @@ class TestSearchKnowledge:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.search_knowledge.scanner")
-    async def test_limit_clamped(self, mock_scanner: AsyncMock, authorized_caller: None) -> None:
-        mock_scanner.search_knowledge = AsyncMock(return_value={"query": "q", "items": []})
+    async def test_limit_clamped(
+        self, mock_scanner: AsyncMock, authorized_caller: None
+    ) -> None:
+        mock_scanner.search_knowledge = AsyncMock(
+            return_value={"query": "q", "items": []}
+        )
 
         await search_knowledge(query="q", limit=99)
 
