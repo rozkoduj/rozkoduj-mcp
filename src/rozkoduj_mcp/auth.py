@@ -80,7 +80,9 @@ class JWKSTokenVerifier(TokenVerifier):
             resp.raise_for_status()
             payload = resp.json()
         keys = payload.get("keys", []) if isinstance(payload, dict) else []
-        self._jwks_keys = {k["kid"]: k for k in keys if isinstance(k, dict) and "kid" in k}
+        self._jwks_keys = {
+            k["kid"]: k for k in keys if isinstance(k, dict) and "kid" in k
+        }
         self._jwks_fetched_at = time.monotonic()
 
     async def _get_signing_key(self, kid: str) -> Any:
@@ -95,7 +97,9 @@ class JWKSTokenVerifier(TokenVerifier):
         # (Ed25519/Ed448), and EC keys all work without per-type branching.
         return jwt.PyJWK(jwk).key
 
-    async def _decode_with_rotation_retry(self, token: str, kid: str) -> dict[str, Any] | None:
+    async def _decode_with_rotation_retry(
+        self, token: str, kid: str
+    ) -> dict[str, Any] | None:
         """Decode ``token`` against the JWKS, force-refreshing once on signature
         failure so a freshly rotated signing key is picked up before the cached
         TTL expires (otherwise auth would 401 for up to ``jwks_ttl_seconds``
@@ -140,7 +144,9 @@ class JWKSTokenVerifier(TokenVerifier):
 
         client_id = payload.get("client_id") or payload.get("azp") or ""
         expires_at_raw = payload.get("exp")
-        expires_at = int(expires_at_raw) if isinstance(expires_at_raw, (int, float)) else None
+        expires_at = (
+            int(expires_at_raw) if isinstance(expires_at_raw, (int, float)) else None
+        )
 
         # Pin end-user identity into the request-scoped context so outbound
         # calls to the API can attach X-User-* headers without having to

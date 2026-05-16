@@ -62,7 +62,9 @@ class TestProtectedResourceMetadata:
 
 
 class TestUnauthenticatedChallenge:
-    def test_anonymous_request_returns_401_with_resource_metadata(self, auth_app: FastMCP) -> None:
+    def test_anonymous_request_returns_401_with_resource_metadata(
+        self, auth_app: FastMCP
+    ) -> None:
         with _client(auth_app) as client:
             resp = client.post(
                 "/mcp",

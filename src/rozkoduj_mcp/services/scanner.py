@@ -127,7 +127,11 @@ async def _outbound_headers() -> dict[str, str]:
     across services. Falls back to a transport secret when the metadata
     server is unreachable so the local-dev loop keeps working.
     """
-    from rozkoduj_mcp.auth import current_user_id, current_user_scopes, current_user_tier
+    from rozkoduj_mcp.auth import (
+        current_user_id,
+        current_user_scopes,
+        current_user_tier,
+    )
     from rozkoduj_mcp.logging import current_trace_header
 
     headers: dict[str, str] = {}
@@ -180,7 +184,9 @@ async def scan_market(
 
 async def analyze(symbol: str, interval: str = "1d") -> dict[str, Any]:
     """Fetch technical analysis for a single symbol."""
-    return await _post("/analyze", symbol, json={"symbol": symbol, "interval": interval})
+    return await _post(
+        "/analyze", symbol, json={"symbol": symbol, "interval": interval}
+    )
 
 
 async def movers(
@@ -196,15 +202,21 @@ async def movers(
 
 async def score(symbol: str, interval: str = "1d") -> dict[str, Any]:
     """Get holistic 0-100 score for a symbol."""
-    return await _post("/score", f"score {symbol}", json={"symbol": symbol, "interval": interval})
+    return await _post(
+        "/score", f"score {symbol}", json={"symbol": symbol, "interval": interval}
+    )
 
 
 async def fundamentals(symbol: str) -> dict[str, Any]:
     """Fetch fundamental data for a symbol."""
-    return await _post("/fundamentals", f"fundamentals {symbol}", json={"symbol": symbol})
+    return await _post(
+        "/fundamentals", f"fundamentals {symbol}", json={"symbol": symbol}
+    )
 
 
-async def buzz(query: str, lang: str = "en", wiki_article: str | None = None) -> dict[str, Any]:
+async def buzz(
+    query: str, lang: str = "en", wiki_article: str | None = None
+) -> dict[str, Any]:
     """Get attention signal: news count + optional pageview trend."""
     params: dict[str, str | int] = {"query": query, "lang": lang}
     if wiki_article:
@@ -217,7 +229,9 @@ async def market_pulse() -> dict[str, Any]:
     return await _get("/market-pulse", "market-pulse")
 
 
-async def calendar(days: int = 7, countries: str = "US", importance: int = 0) -> dict[str, Any]:
+async def calendar(
+    days: int = 7, countries: str = "US", importance: int = 0
+) -> dict[str, Any]:
     """Fetch economic calendar events."""
     return await _get(
         "/calendar",
@@ -271,7 +285,9 @@ async def strategy_details(identifier: str) -> dict[str, Any]:
     return await _get(f"/strategies/{identifier}", f"strategy {identifier}")
 
 
-async def search_articles(query: str, locale: str | None = None, limit: int = 5) -> dict[str, Any]:
+async def search_articles(
+    query: str, locale: str | None = None, limit: int = 5
+) -> dict[str, Any]:
     """Hybrid search over Rozkoduj blog articles."""
     payload: dict[str, Any] = {"query": query, "limit": limit}
     if locale:

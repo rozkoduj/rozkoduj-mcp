@@ -32,7 +32,9 @@ _MARKET_NAMES: dict[Market, str] = {
     "forex": "Forex pairs",
 }
 
-_MARKETS: list[dict[str, str]] = [{"id": m, "name": _MARKET_NAMES[m]} for m in get_args(Market)]
+_MARKETS: list[dict[str, str]] = [
+    {"id": m, "name": _MARKET_NAMES[m]} for m in get_args(Market)
+]
 
 # Most useful screening columns.
 _FIELDS: list[dict[str, str]] = [
@@ -140,8 +142,16 @@ _OPERATORS: list[dict[str, str]] = [
     {"id": "not_equal", "name": "Not equal to", "example": "sector != 'Utilities'"},
     {"id": "in_range", "name": "Between two values", "example": "P/E between [5, 15]"},
     {"id": "not_in_range", "name": "Outside range", "example": "P/E not in [5, 15]"},
-    {"id": "crosses_above", "name": "Crosses above", "example": "macd crosses above macd_signal"},
-    {"id": "crosses_below", "name": "Crosses below", "example": "macd crosses below macd_signal"},
+    {
+        "id": "crosses_above",
+        "name": "Crosses above",
+        "example": "macd crosses above macd_signal",
+    },
+    {
+        "id": "crosses_below",
+        "name": "Crosses below",
+        "example": "macd crosses below macd_signal",
+    },
     {"id": "above_pct", "name": "Above by %", "example": "close above SMA200 by 5%"},
     {"id": "below_pct", "name": "Below by %", "example": "close below SMA200 by 5%"},
 ]
@@ -153,19 +163,25 @@ _OPERATORS_JSON = json.dumps(_OPERATORS, indent=2)
 _FRESHNESS_CONTRACT_JSON = json.dumps(_FRESHNESS_CONTRACT, indent=2)
 
 
-@mcp.resource("rozkoduj://markets", name="Available markets", mime_type="application/json")
+@mcp.resource(
+    "rozkoduj://markets", name="Available markets", mime_type="application/json"
+)
 def get_markets() -> str:
     """List of markets available for screening with the scan tool."""
     return _MARKETS_JSON
 
 
-@mcp.resource("rozkoduj://fields", name="Screening fields", mime_type="application/json")
+@mcp.resource(
+    "rozkoduj://fields", name="Screening fields", mime_type="application/json"
+)
 def get_fields() -> str:
     """Popular screening fields for use with scan tool columns and filters."""
     return _FIELDS_JSON
 
 
-@mcp.resource("rozkoduj://operators", name="Filter operators", mime_type="application/json")
+@mcp.resource(
+    "rozkoduj://operators", name="Filter operators", mime_type="application/json"
+)
 def get_operators() -> str:
     """Filter operators for use with scan tool filters."""
     return _OPERATORS_JSON

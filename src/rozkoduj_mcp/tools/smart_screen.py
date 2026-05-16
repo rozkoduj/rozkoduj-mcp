@@ -7,7 +7,13 @@ from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Market
 
 Preset = Literal[
-    "unusual_volume", "oversold_bounce", "breakout", "momentum", "dividend", "value", "growth"
+    "unusual_volume",
+    "oversold_bounce",
+    "breakout",
+    "momentum",
+    "dividend",
+    "value",
+    "growth",
 ]
 
 _PRESETS: dict[str, dict[str, Any]] = {

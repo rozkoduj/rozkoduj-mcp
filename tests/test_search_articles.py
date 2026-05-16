@@ -42,7 +42,9 @@ class TestSearchArticles:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.search_articles.scanner")
     async def test_locale_optional(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.search_articles = AsyncMock(return_value={"query": "q", "items": []})
+        mock_scanner.search_articles = AsyncMock(
+            return_value={"query": "q", "items": []}
+        )
 
         await search_articles(query="q")
 
@@ -53,7 +55,9 @@ class TestSearchArticles:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.search_articles.scanner")
     async def test_limit_clamped(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.search_articles = AsyncMock(return_value={"query": "q", "items": []})
+        mock_scanner.search_articles = AsyncMock(
+            return_value={"query": "q", "items": []}
+        )
 
         await search_articles(query="q", limit=999)
 

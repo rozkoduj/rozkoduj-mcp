@@ -46,7 +46,9 @@ class TestDecode:
 
         await decode(symbol="ASML.AS", lang="de")
 
-        mock_scanner.decode.assert_called_once_with(symbol="ASML.AS", query="", lang="de")
+        mock_scanner.decode.assert_called_once_with(
+            symbol="ASML.AS", query="", lang="de"
+        )
 
     @pytest.mark.anyio
     async def test_rejects_long_symbol(self) -> None:

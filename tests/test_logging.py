@@ -84,16 +84,22 @@ class TestTracePropagation:
         entry = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
         assert entry["trace_id"] == "abc123def"
 
-    def test_logs_trace_id_from_w3c_traceparent(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_logs_trace_id_from_w3c_traceparent(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         resp = client.get(
             "/test",
-            headers={"traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"},
+            headers={
+                "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            },
         )
         assert resp.status_code == 200
         entry = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
         assert entry["trace_id"] == "0af7651916cd43dd8448eb211c80319c"
 
-    def test_no_trace_id_when_header_missing(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_no_trace_id_when_header_missing(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         resp = client.get("/test")
         assert resp.status_code == 200
         entry = json.loads(capsys.readouterr().out.strip().splitlines()[-1])

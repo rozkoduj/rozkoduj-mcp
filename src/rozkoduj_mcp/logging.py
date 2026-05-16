@@ -47,7 +47,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
 
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Any]) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Any]
+    ) -> Response:
         if request.url.path in _SKIP_PATHS:
             resp: Response = await call_next(request)
             return resp
@@ -72,7 +74,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             }
             if trace_id:
                 entry["trace_id"] = trace_id
-            severity = "INFO" if status < 400 else "WARNING" if status < 500 else "ERROR"
+            severity = (
+                "INFO" if status < 400 else "WARNING" if status < 500 else "ERROR"
+            )
             sys.stdout.write(
                 json.dumps({"severity": severity, "message": "request", **entry}) + "\n"
             )

@@ -34,7 +34,9 @@ async def scan(
     ] = None,
     sort_by: Annotated[
         str,
-        Field(description="Column name used to order results (e.g. 'volume', 'change')."),
+        Field(
+            description="Column name used to order results (e.g. 'volume', 'change')."
+        ),
     ] = "volume",
     order: Literal["asc", "desc"] = "desc",
     limit: int = 20,

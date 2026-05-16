@@ -78,7 +78,9 @@ class TestScan:
 
     @pytest.mark.anyio
     async def test_rejects_too_many_filters(self) -> None:
-        filters = [{"left": "volume", "operation": "greater", "right": i} for i in range(21)]
+        filters = [
+            {"left": "volume", "operation": "greater", "right": i} for i in range(21)
+        ]
         with pytest.raises(ValueError, match="filters"):
             await scan(filters=filters)
 
@@ -91,7 +93,9 @@ class TestScan:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.scan.scanner")
     async def test_custom_columns(self, mock_scanner: MagicMock) -> None:
-        mock_scanner.scan_market = AsyncMock(return_value=[{"name": "BTCUSDT", "RSI": 42.0}])
+        mock_scanner.scan_market = AsyncMock(
+            return_value=[{"name": "BTCUSDT", "RSI": 42.0}]
+        )
 
         result = await scan(columns=["name", "RSI"])
 

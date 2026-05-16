@@ -11,7 +11,9 @@ class TestSmartScreen:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.smart_screen.scanner")
     async def test_unusual_volume(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.scan_market = AsyncMock(return_value=[{"name": "NVDA", "close": 900}])
+        mock_scanner.scan_market = AsyncMock(
+            return_value=[{"name": "NVDA", "close": 900}]
+        )
 
         result = await smart_screen("unusual_volume")
 
@@ -53,7 +55,9 @@ class TestSmartScreen:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.smart_screen.scanner")
-    async def test_value_preset_uses_fundamentals(self, mock_scanner: AsyncMock) -> None:
+    async def test_value_preset_uses_fundamentals(
+        self, mock_scanner: AsyncMock
+    ) -> None:
         mock_scanner.scan_market = AsyncMock(return_value=[])
 
         await smart_screen("value")
@@ -64,7 +68,9 @@ class TestSmartScreen:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.smart_screen.scanner")
-    async def test_growth_preset_uses_fundamentals(self, mock_scanner: AsyncMock) -> None:
+    async def test_growth_preset_uses_fundamentals(
+        self, mock_scanner: AsyncMock
+    ) -> None:
         mock_scanner.scan_market = AsyncMock(return_value=[])
 
         await smart_screen("growth")

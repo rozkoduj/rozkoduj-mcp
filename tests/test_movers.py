@@ -19,7 +19,9 @@ class TestMovers:
 
         result = await movers(direction="gainers")
 
-        mock_scanner.movers.assert_called_once_with(market="crypto", direction="gainers", limit=10)
+        mock_scanner.movers.assert_called_once_with(
+            market="crypto", direction="gainers", limit=10
+        )
         assert "gainers" in result
 
     @pytest.mark.anyio
@@ -31,7 +33,9 @@ class TestMovers:
 
         result = await movers(direction="losers")
 
-        mock_scanner.movers.assert_called_once_with(market="crypto", direction="losers", limit=10)
+        mock_scanner.movers.assert_called_once_with(
+            market="crypto", direction="losers", limit=10
+        )
         assert "losers" in result
 
     @pytest.mark.anyio

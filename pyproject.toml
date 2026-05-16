@@ -1,9 +1,9 @@
 [project]
 name = "rozkoduj-mcp"
-version = "2026.5.12"
+version = "2026.5.16"
 description = "Decode the markets with your AI assistant. Screening, analysis, and scoring across stocks, crypto, and forex."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.14"
 authors = [
     { name = "Jacek Bogocz", email = "contact@rozkoduj.com" },
@@ -17,14 +17,12 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Typing :: Typed",
 ]
 dependencies = [
-    "mcp[cli]>=1.27.1",
+    "mcp>=1.27.1",
     "httpx>=0.28.1",
     "pyjwt[crypto]>=2.12.1",
 ]
@@ -43,18 +41,14 @@ dev = [
     "pytest>=9.0.3",
     "anyio>=4.13.0",
     "mypy>=2.1.0",
-    "ruff>=0.15.12",
+    "ruff>=0.15.13",
     "pre-commit>=4.6.0",
     "coverage>=7.14.0",
 ]
 
 [build-system]
-requires = ["uv_build>=0.11.2"]
+requires = ["uv_build>=0.11.2,<0.12"]
 build-backend = "uv_build"
-
-[tool.ruff]
-target-version = "py314"
-line-length = 99
 
 [tool.ruff.lint]
 select = [
@@ -62,13 +56,6 @@ select = [
     "S", "T20", "C4", "A",
 ]
 ignore = ["E501", "S101", "S104"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["rozkoduj_mcp"]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
 
 [tool.mypy]
 strict = true
