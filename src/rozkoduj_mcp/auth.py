@@ -48,9 +48,9 @@ REQUIRED_SCOPES = ["mcp:read"]
 LOGIN_URL = "https://rozkoduj.com/login"
 
 # Scope -> tier the user must reach to obtain it. Keeps the error message
-# accurate ("upgrade to premium") rather than vague ("upgrade your plan").
+# accurate ("upgrade to pro") rather than vague ("upgrade your plan").
 _SCOPE_TIER_HINTS: dict[str, str] = {
-    "mcp:knowledge:read": "premium",
+    "mcp:knowledge:read": "pro",
 }
 
 
@@ -196,7 +196,7 @@ class ScopeRequiredError(PermissionError):
 
     def __init__(self, scope: str) -> None:
         self.scope = scope
-        self.tier_required = _SCOPE_TIER_HINTS.get(scope, "premium")
+        self.tier_required = _SCOPE_TIER_HINTS.get(scope, "pro")
         self.login_url = LOGIN_URL
         message = (
             f"auth_required: this tool needs the '{scope}' scope "
