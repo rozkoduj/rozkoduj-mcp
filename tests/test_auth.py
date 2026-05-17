@@ -397,7 +397,7 @@ class TestUserIdentityContextVars:
 class TestRequiresScope:
     @pytest.mark.anyio
     async def test_denies_when_scope_missing(self) -> None:
-        @requires_scope("mcp:pro")
+        @requires_scope("mcp:knowledge:read")
         async def call() -> str:
             return "ok"
 
@@ -405,13 +405,13 @@ class TestRequiresScope:
         try:
             with pytest.raises(ScopeRequiredError) as exc:
                 await call()
-            assert exc.value.scope == "mcp:pro"
+            assert exc.value.scope == "mcp:knowledge:read"
         finally:
             auth_context_var.reset(reset)
 
     @pytest.mark.anyio
     async def test_denies_anonymous(self) -> None:
-        @requires_scope("mcp:pro")
+        @requires_scope("mcp:knowledge:read")
         async def call() -> str:
             return "ok"
 
@@ -420,11 +420,11 @@ class TestRequiresScope:
 
     @pytest.mark.anyio
     async def test_allows_when_scope_present(self) -> None:
-        @requires_scope("mcp:pro")
+        @requires_scope("mcp:knowledge:read")
         async def call(x: int) -> int:
             return x * 2
 
-        reset = _bind_user(scopes=["mcp:read", "mcp:pro"])
+        reset = _bind_user(scopes=["mcp:read", "mcp:knowledge:read"])
         try:
             assert await call(3) == 6
         finally:
@@ -437,15 +437,16 @@ class TestScopeRequiredErrorContent:
     a chat UI can hook into for a "Log in to unlock" CTA.
     """
 
-    def test_known_scope_resolves_to_pro_tier(self) -> None:
+    def test_exposes_scope_and_login_url(self) -> None:
         err = ScopeRequiredError("mcp:knowledge:read")
         assert err.scope == "mcp:knowledge:read"
-        assert err.tier_required == "pro"
         assert err.login_url == "https://rozkoduj.com/login"
-        assert "log in at https://rozkoduj.com/login" in str(err).lower()
-        assert "pro tier" in str(err).lower()
-
-    def test_unknown_scope_falls_back_to_pro(self) -> None:
-        err = ScopeRequiredError("mcp:future:write")
-        assert err.tier_required == "pro"
+        assert "mcp:knowledge:read" in str(err)
+        assert "https://rozkoduj.com/login" in str(err)
         assert "auth_required" in str(err)
+
+    def test_message_does_not_leak_billing_plan_names(self) -> None:
+        err = ScopeRequiredError("mcp:knowledge:read")
+        message = str(err).lower()
+        for plan in ("pro", "premium", "max", "tier"):
+            assert plan not in message
