@@ -42,16 +42,10 @@ AUDIENCE = "https://mcp.rozkoduj.com/mcp"
 JWKS_URI = f"{ISSUER}/jwks"
 REQUIRED_SCOPES = ["mcp:read"]
 
-# Login surface for users who hit a scope-gated tool while anonymous or on
-# a tier without the required scope. Embedded in the error message so the
-# calling LLM has an actionable CTA to surface to the end user.
+# Login surface for users who hit a scope-gated tool without the required
+# scope. Embedded in the error message so the calling LLM has an
+# actionable CTA to surface to the end user.
 LOGIN_URL = "https://rozkoduj.com/login"
-
-# Scope -> tier the user must reach to obtain it. Keeps the error message
-# accurate ("upgrade to pro") rather than vague ("upgrade your plan").
-_SCOPE_TIER_HINTS: dict[str, str] = {
-    "mcp:knowledge:read": "pro",
-}
 
 
 class JWKSTokenVerifier(TokenVerifier):
@@ -196,11 +190,10 @@ class ScopeRequiredError(PermissionError):
 
     def __init__(self, scope: str) -> None:
         self.scope = scope
-        self.tier_required = _SCOPE_TIER_HINTS.get(scope, "pro")
         self.login_url = LOGIN_URL
         message = (
-            f"auth_required: this tool needs the '{scope}' scope "
-            f"({self.tier_required} tier). Log in at {LOGIN_URL} to unlock."
+            f"auth_required: this tool needs the '{scope}' scope. "
+            f"Sign in or upgrade at {LOGIN_URL} to unlock."
         )
         super().__init__(message)
 
