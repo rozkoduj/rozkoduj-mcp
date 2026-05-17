@@ -34,7 +34,7 @@ Add the hosted server URL to your MCP client:
 https://mcp.rozkoduj.com/mcp
 ```
 
-Works immediately, no API key needed. Sign in for higher quotas and premium tools.
+Works immediately, no API key needed. Sign in for higher quotas and pro tools.
 
 <details>
 <summary><b>Cursor</b></summary>
@@ -172,7 +172,7 @@ Same pattern works for any market question:
 | `list_strategies` | Browse Rozkoduj's catalog of published trading strategies. Sort by Sharpe / Sortino / CAGR, filter by family. |
 | `strategy_details` | Drill into a single strategy by slug or `algorithm_uid` - full metrics, sparkline, params, data range. |
 | `search_articles` | Keyword + meaning search across the Rozkoduj blog. Returns `slug` + `locale` for citation. |
-| `search_knowledge` | Premium: hybrid search across Rozkoduj's extended knowledge base. Requires `mcp:knowledge:read` scope (sign in). |
+| `search_knowledge` | Pro: hybrid search across Rozkoduj's extended knowledge base. Requires `mcp:knowledge:read` scope (sign in). |
 
 <details>
 <summary><b>Resources & Prompts</b></summary>
