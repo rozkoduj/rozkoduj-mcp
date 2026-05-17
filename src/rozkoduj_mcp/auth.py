@@ -193,7 +193,7 @@ class ScopeRequiredError(PermissionError):
         self.login_url = LOGIN_URL
         message = (
             f"auth_required: this tool needs the '{scope}' scope. "
-            f"Sign in or upgrade at {LOGIN_URL} to unlock."
+            f"Unlock at {LOGIN_URL}."
         )
         super().__init__(message)
 
