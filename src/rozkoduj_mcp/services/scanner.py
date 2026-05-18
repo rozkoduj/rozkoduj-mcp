@@ -7,7 +7,6 @@ separate identity headers; the caller's bearer is never forwarded
 """
 
 import asyncio
-import os
 from typing import Any
 
 import httpx
@@ -112,11 +111,7 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
 
 
 async def _outbound_headers() -> dict[str, str]:
-    """Build the auth, identity, and trace headers for an outbound call.
-
-    Falls back to ``INTERNAL_API_KEY`` when the metadata server is
-    unreachable so local-dev keeps working without the platform.
-    """
+    """Build the auth, identity, and trace headers for an outbound call."""
     from rozkoduj_mcp.auth import (
         current_user_id,
         current_user_scopes,
@@ -129,10 +124,6 @@ async def _outbound_headers() -> dict[str, str]:
     id_token = await iam_client.get_id_token()
     if id_token is not None:
         headers["Authorization"] = f"Bearer {id_token}"
-    else:
-        key = os.environ.get("INTERNAL_API_KEY")
-        if key:
-            headers["X-Internal-Key"] = key
 
     user_id = current_user_id.get()
     if user_id:
