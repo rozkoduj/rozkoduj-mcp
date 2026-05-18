@@ -14,10 +14,8 @@ from starlette.types import ASGIApp
 
 _SKIP_PATHS: frozenset[str] = frozenset({"/health", "/robots.txt"})
 
-# Bound by the middleware, read by downstream callers (services.scanner) so
-# they can forward the same trace header to api.rozkoduj.com. Cloud Logging
-# joins MCP and API entries on this id, which is how an oncall jumps from a
-# 502 in MCP to the upstream stack trace in API without grep gymnastics.
+# Bound by the middleware so outbound calls can forward the same trace
+# header and Cloud Logging joins entries across services on this id.
 current_trace_header: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_trace_header", default=None
 )

@@ -13,12 +13,8 @@ from rozkoduj_mcp.services import scanner
 
 @pytest.fixture(autouse=True)
 def _scanner_semaphore() -> Iterator[None]:
-    """Match the production lifespan contract.
-
-    Without setup_client(), scanner._get_semaphore() correctly raises - we
-    pre-init the semaphore here so individual tests that patch only
-    ``scanner.client`` (the common case) keep working without each having
-    to call setup_client themselves.
+    """Pre-init the scanner semaphore so tests that only patch
+    ``scanner.client`` do not need to call ``setup_client`` themselves.
     """
     scanner._request_semaphore = asyncio.Semaphore(scanner._MAX_CONCURRENT_REQUESTS)
     try:

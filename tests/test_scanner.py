@@ -660,7 +660,8 @@ class TestSearchKnowledge:
         assert headers["X-User-Id"] == "user-42"
         assert headers["X-User-Tier"] == "pro"
         assert headers["X-User-Scopes"] == "mcp:read mcp:knowledge:read"
-        # Legacy transport secret must not coexist with the IAM token path.
+        # INTERNAL_API_KEY is only a fallback - the IAM path must win
+        # whenever a service-identity token is available.
         assert "X-Internal-Key" not in headers
 
     @pytest.mark.anyio
@@ -680,6 +681,36 @@ class TestSearchKnowledge:
         await search_knowledge(query="x")
 
         assert mock_client.post.call_args[1]["headers"] == {}
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_omits_tier_header_when_claim_absent(
+        self,
+        mock_client: AsyncMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from rozkoduj_mcp import iam_client
+        from rozkoduj_mcp.auth import current_user_id
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+        user_reset = current_user_id.set("user-without-tier")
+        try:
+            with patch.object(
+                iam_client, "_fetch", new=AsyncMock(return_value="iam-token-xyz")
+            ):
+                iam_client.reset_cache()
+                await search_knowledge(query="x")
+        finally:
+            current_user_id.reset(user_reset)
+            iam_client.reset_cache()
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["X-User-Id"] == "user-without-tier"
+        assert "X-User-Tier" not in headers
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")

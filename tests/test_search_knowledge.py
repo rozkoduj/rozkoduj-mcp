@@ -5,24 +5,18 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from mcp.server.auth.middleware.auth_context import auth_context_var
-from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
-from mcp.server.auth.provider import AccessToken
 
+from rozkoduj_mcp.auth import current_user_scopes
 from rozkoduj_mcp.tools.search_knowledge import search_knowledge
 
 
 @pytest.fixture
 def authorized_caller() -> Iterator[None]:
-    """Bind an AuthenticatedUser carrying the read scope this tool requires."""
-    user = AuthenticatedUser(
-        AccessToken(token="t", client_id="cli", scopes=["mcp:knowledge:read"])  # noqa: S106
-    )
-    reset = auth_context_var.set(user)
+    reset = current_user_scopes.set("mcp:knowledge:read")
     try:
         yield
     finally:
-        auth_context_var.reset(reset)
+        current_user_scopes.reset(reset)
 
 
 def _mock_result() -> dict[str, Any]:
