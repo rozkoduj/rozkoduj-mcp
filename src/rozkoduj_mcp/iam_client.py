@@ -2,9 +2,8 @@
 
 Fetches a signed ID token from the platform metadata server with the data
 API URL as audience, and uses it as the ``Authorization: Bearer`` value
-on every outbound call. Tokens are valid for 60 minutes and refreshed at
-55 to dodge edge-of-validity churn. The metadata hop goes to a link-local
-address that fast-fails when the process is not running on the platform.
+on every outbound call. The metadata hop goes to a link-local address
+that fast-fails when the process is not running on the platform.
 """
 
 import asyncio
@@ -44,8 +43,7 @@ async def get_id_token(audience: str = _DEFAULT_AUDIENCE) -> str | None:
     """Return a cached or freshly-minted Google ID token for ``audience``.
 
     Returns ``None`` when the metadata server is unreachable (local dev,
-    tests, anything outside GCE / Cloud Run) so callers can fall back to a
-    transport secret like ``INTERNAL_API_KEY``.
+    tests, anything outside GCE / Cloud Run).
     """
     global _cached_token, _cached_at
 

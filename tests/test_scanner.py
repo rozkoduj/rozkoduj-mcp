@@ -600,34 +600,10 @@ class TestSearchKnowledge:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_falls_back_to_internal_key_for_anonymous(
-        self,
-        mock_client: AsyncMock,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        from rozkoduj_mcp.services.scanner import search_knowledge
-
-        monkeypatch.setenv("INTERNAL_API_KEY", "secret")
-        mock_client.post = AsyncMock(
-            return_value=_mock_response({"query": "q", "items": []})
-        )
-
-        await search_knowledge(query="risk", limit=2)
-
-        kwargs = mock_client.post.call_args[1]
-        assert kwargs["json"] == {"query": "risk", "limit": 2}
-        assert kwargs["headers"] == {"X-Internal-Key": "secret"}
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_uses_iam_token_and_user_identity_headers(
         self,
         mock_client: AsyncMock,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Authenticated user: Google ID token in Authorization, identity in
-        X-User-* headers. The MCP spec 2025-06-18 forbids passing the user's
-        bearer through, so the API never sees the caller's JWT."""
         from rozkoduj_mcp import iam_client
         from rozkoduj_mcp.auth import (
             current_user_id,
@@ -636,7 +612,6 @@ class TestSearchKnowledge:
         )
         from rozkoduj_mcp.services.scanner import search_knowledge
 
-        monkeypatch.setenv("INTERNAL_API_KEY", "should-not-be-used")
         mock_client.post = AsyncMock(
             return_value=_mock_response({"query": "q", "items": []})
         )
@@ -655,25 +630,22 @@ class TestSearchKnowledge:
             current_user_id.reset(user_reset)
             iam_client.reset_cache()
 
-        headers = mock_client.post.call_args[1]["headers"]
+        kwargs = mock_client.post.call_args[1]
+        assert kwargs["json"] == {"query": "x", "limit": 1}
+        headers = kwargs["headers"]
         assert headers["Authorization"] == "Bearer iam-token-xyz"
         assert headers["X-User-Id"] == "user-42"
         assert headers["X-User-Tier"] == "pro"
         assert headers["X-User-Scopes"] == "mcp:read mcp:knowledge:read"
-        # INTERNAL_API_KEY is only a fallback - the IAM path must win
-        # whenever a service-identity token is available.
-        assert "X-Internal-Key" not in headers
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_sends_no_auth_when_nothing_available(
         self,
         mock_client: AsyncMock,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         from rozkoduj_mcp.services.scanner import search_knowledge
 
-        monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
         mock_client.post = AsyncMock(
             return_value=_mock_response({"query": "q", "items": []})
         )
@@ -687,13 +659,11 @@ class TestSearchKnowledge:
     async def test_omits_tier_header_when_claim_absent(
         self,
         mock_client: AsyncMock,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         from rozkoduj_mcp import iam_client
         from rozkoduj_mcp.auth import current_user_id
         from rozkoduj_mcp.services.scanner import search_knowledge
 
-        monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
         mock_client.post = AsyncMock(
             return_value=_mock_response({"query": "q", "items": []})
         )
@@ -717,7 +687,6 @@ class TestSearchKnowledge:
     async def test_forwards_trace_header_to_api(
         self,
         mock_client: AsyncMock,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Inbound Cloud Run trace header propagates so GCP Logging joins
         the MCP and API entries under the same trace_id.
@@ -725,7 +694,6 @@ class TestSearchKnowledge:
         from rozkoduj_mcp.logging import current_trace_header
         from rozkoduj_mcp.services.scanner import search_knowledge
 
-        monkeypatch.setenv("INTERNAL_API_KEY", "key-xyz")
         mock_client.post = AsyncMock(
             return_value=_mock_response({"query": "q", "items": []})
         )
@@ -737,5 +705,4 @@ class TestSearchKnowledge:
             current_trace_header.reset(token)
 
         headers = mock_client.post.call_args[1]["headers"]
-        assert headers["X-Internal-Key"] == "key-xyz"
         assert headers["X-Cloud-Trace-Context"] == "trace-abc/0;o=1"
