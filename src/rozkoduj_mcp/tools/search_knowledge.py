@@ -13,8 +13,7 @@ from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
 async def search_knowledge(query: str, limit: int = 5) -> dict[str, Any]:
     """Search Rozkoduj's extended knowledge base (scope-gated, read-only).
 
-    Requires the ``mcp:knowledge:read`` OAuth scope. Anonymous callers
-    receive a scope-required error once auth is enforced.
+    Requires the ``mcp:knowledge:read`` OAuth scope - sign in to unlock.
 
     Args:
         query: Question or topic (2-300 chars).

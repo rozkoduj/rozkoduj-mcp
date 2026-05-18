@@ -18,9 +18,8 @@ import pytest
 
 from rozkoduj_mcp import iam_client
 
-# Capture the real _fetch at import time, before the package-level autouse
-# fixture has a chance to replace it on the module. Lets us reach into
-# the underlying httpx call when we want to test the fetch logic itself.
+# Captured before the package-level autouse fixture replaces _fetch on
+# the module, so the original httpx call remains reachable in this file.
 _REAL_FETCH = iam_client._fetch
 
 
@@ -63,9 +62,8 @@ class TestGetIdToken:
 
     @pytest.mark.anyio
     async def test_double_checked_locking_reuses_first_fetch(self) -> None:
-        """When two callers race and the second arrives while the first is
-        still inside the lock fetching, the second must see the primed
-        cache on its post-lock recheck and skip its own fetch."""
+        """A second caller arriving while the first is fetching must see the
+        primed cache on its post-lock recheck and skip its own fetch."""
         iam_client.reset_cache()
 
         fetch_started = asyncio.Event()
@@ -123,8 +121,9 @@ class TestFetch:
 
     @pytest.mark.anyio
     async def test_returns_none_on_connect_error(self) -> None:
-        """Outside Cloud Run the metadata hostname fails DNS / TCP - we
-        must surface None so callers fall back to INTERNAL_API_KEY."""
+        """Outside Cloud Run the metadata hostname fails DNS / TCP - the
+        return value must be None so callers fall back to INTERNAL_API_KEY.
+        """
         client = AsyncMock()
         client.__aenter__.return_value = client
         client.__aexit__.return_value = False

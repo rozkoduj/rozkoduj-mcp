@@ -1,11 +1,9 @@
 """Async client for the rozkoduj data API.
 
-Outbound calls authenticate with a service-identity token (fetched from
-the platform metadata server). End-user identity extracted from the
-inbound MCP JWT is propagated through separate identity headers.
-
-Token passthrough is forbidden by the MCP 2025-06-18 spec; this module
-never forwards the caller's bearer to the data API.
+Outbound calls authenticate with a service-identity token. End-user
+identity extracted from the inbound MCP JWT is propagated through
+separate identity headers; the caller's bearer is never forwarded
+(MCP 2025-06-18 spec).
 """
 
 import asyncio
@@ -25,9 +23,8 @@ _MAX_CONCURRENT_REQUESTS = 4
 _request_semaphore: asyncio.Semaphore | None = None
 
 # Retry only on connection-level failures (DNS hiccup, dropped socket,
-# read-before-headers). httpx does not retry on response status codes, which
-# is what we want - 4xx/5xx are deterministic, retrying them just doubles
-# latency before surfacing the same error.
+# read-before-headers). httpx does not retry on 4xx/5xx by design;
+# those are deterministic and retrying just doubles latency.
 _TRANSPORT_RETRIES = 2
 
 
@@ -67,16 +64,11 @@ def _get_semaphore() -> asyncio.Semaphore:
 
 
 def _rate_limit_error(context: str, exc: httpx.HTTPStatusError) -> RuntimeError:
-    """Build an actionable RuntimeError for an upstream 429.
-
-    Surfacing 429 with the Retry-After hint lets the calling LLM tell the
-    user "rate limited, retry in N seconds" instead of a generic backend
-    error.
-    """
+    """Build a RuntimeError for an upstream 429 with the Retry-After hint."""
     retry_after = exc.response.headers.get("Retry-After", "later")
     msg = (
         f"Rate limit exceeded for {context}. Retry after {retry_after} "
-        "seconds, or sign in for a higher quota."
+        "seconds, or sign in to keep going."
     )
     return RuntimeError(msg)
 
@@ -120,12 +112,10 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
 
 
 async def _outbound_headers() -> dict[str, str]:
-    """Auth, identity, and trace headers for downstream calls.
+    """Build the auth, identity, and trace headers for an outbound call.
 
-    Attaches a service-identity token, end-user identity propagated from
-    the inbound JWT, and the inbound trace header so platform logs join
-    across services. Falls back to a transport secret when the metadata
-    server is unreachable so the local-dev loop keeps working.
+    Falls back to ``INTERNAL_API_KEY`` when the metadata server is
+    unreachable so local-dev keeps working without the platform.
     """
     from rozkoduj_mcp.auth import (
         current_user_id,
@@ -147,7 +137,9 @@ async def _outbound_headers() -> dict[str, str]:
     user_id = current_user_id.get()
     if user_id:
         headers["X-User-Id"] = user_id
-        headers["X-User-Tier"] = current_user_tier.get() or "free"
+        tier = current_user_tier.get()
+        if tier:
+            headers["X-User-Tier"] = tier
         scopes = current_user_scopes.get()
         if scopes:
             headers["X-User-Scopes"] = scopes

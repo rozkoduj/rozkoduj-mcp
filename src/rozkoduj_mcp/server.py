@@ -7,7 +7,6 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from rozkoduj_mcp.auth import default_auth
 from rozkoduj_mcp.services import scanner
 
 _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
@@ -53,10 +52,6 @@ _mcp_kwargs: dict[str, Any] = {
     "json_response": True,
     "lifespan": app_lifespan,
 }
-
-_verifier, _auth_settings = default_auth()
-_mcp_kwargs["token_verifier"] = _verifier
-_mcp_kwargs["auth"] = _auth_settings
 
 mcp = FastMCP("rozkoduj", **_mcp_kwargs)
 

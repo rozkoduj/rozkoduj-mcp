@@ -1,32 +1,21 @@
-"""OAuth 2.1 token verification and per-tool scope gating.
-
-Validates EdDSA JWT access tokens against the rozkoduj.com auth server's
-JWKS (RFC 7517) and exposes a ``requires_scope`` decorator that gates
-individual tools on the scopes carried by the inbound bearer token. The
-issuer, audience, and JWKS URI are constants because this server has one
-canonical deployment and one authorization server.
-"""
+"""JWT identity extraction and per-tool scope gating."""
 
 import functools
 import time
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
-from typing import Any, ParamSpec, TypeVar, cast
+from typing import Any, ParamSpec, TypeVar
 
 import httpx
 import jwt
-from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
-from mcp.server.auth.settings import AuthSettings
-from pydantic import AnyHttpUrl
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
-# End-user identity carved out of the validated JWT, exposed to downstream
-# call sites (services/scanner.py) so they can forward it to the API in
-# ``X-User-*`` headers. Empty string when the request is anonymous - we
-# never want to send "None" / "null" downstream.
+# Request-scoped identity extracted from the validated JWT. Empty string
+# (never None) so outbound headers built from these values stay clean.
 current_user_id: ContextVar[str] = ContextVar("current_user_id", default="")
 current_user_tier: ContextVar[str] = ContextVar("current_user_tier", default="")
 current_user_scopes: ContextVar[str] = ContextVar("current_user_scopes", default="")
@@ -40,11 +29,9 @@ _ACCEPTED_ALGS = ["EdDSA"]
 ISSUER = "https://rozkoduj.com/api/auth"
 AUDIENCE = "https://mcp.rozkoduj.com/mcp"
 JWKS_URI = f"{ISSUER}/jwks"
-REQUIRED_SCOPES = ["mcp:read"]
 
-# Login surface for users who hit a scope-gated tool without the required
-# scope. Embedded in the error message so the calling LLM has an
-# actionable CTA to surface to the end user.
+# Embedded in scope-required errors so the calling LLM can surface a
+# login link to the end user.
 LOGIN_URL = "https://rozkoduj.com/login"
 
 
@@ -94,10 +81,9 @@ class JWKSTokenVerifier(TokenVerifier):
     async def _decode_with_rotation_retry(
         self, token: str, kid: str
     ) -> dict[str, Any] | None:
-        """Decode ``token`` against the JWKS, force-refreshing once on signature
-        failure so a freshly rotated signing key is picked up before the cached
-        TTL expires (otherwise auth would 401 for up to ``jwks_ttl_seconds``
-        after every rotation).
+        """Decode ``token``, force-refreshing the JWKS once on signature failure
+        so a freshly rotated signing key is picked up before the cached TTL
+        expires.
         """
         for attempt in range(2):
             key = await self._get_signing_key(kid)
@@ -136,36 +122,50 @@ class JWKSTokenVerifier(TokenVerifier):
         else:
             scopes = str(scope_claim).split()
 
-        client_id = payload.get("client_id") or payload.get("azp") or ""
         expires_at_raw = payload.get("exp")
         expires_at = (
             int(expires_at_raw) if isinstance(expires_at_raw, (int, float)) else None
         )
 
-        # Pin end-user identity into the request-scoped context so outbound
-        # calls to the API can attach X-User-* headers without having to
-        # re-parse the bearer token.
+        # Missing claims stay empty - no defaults injected.
         current_user_id.set(str(payload.get("sub") or ""))
-        current_user_tier.set(str(payload.get("tier") or "free"))
+        current_user_tier.set(str(payload.get("tier") or ""))
         current_user_scopes.set(" ".join(scopes))
 
         return AccessToken(
             token=token,
-            client_id=cast(str, client_id),
+            client_id=str(payload.get("client_id") or payload.get("azp") or ""),
             scopes=scopes,
             expires_at=expires_at,
         )
 
 
-def default_auth() -> tuple[JWKSTokenVerifier, AuthSettings]:
-    """Return the verifier + AuthSettings pair for the canonical deployment."""
-    verifier = JWKSTokenVerifier(jwks_uri=JWKS_URI, issuer=ISSUER, audience=AUDIENCE)
-    settings = AuthSettings(
-        issuer_url=AnyHttpUrl(ISSUER),
-        resource_server_url=AnyHttpUrl(AUDIENCE),
-        required_scopes=REQUIRED_SCOPES,
-    )
-    return verifier, settings
+class JWTAuthContextMiddleware:
+    """ASGI middleware that tags a request with verified JWT identity."""
+
+    def __init__(self, app: ASGIApp, verifier: JWKSTokenVerifier) -> None:
+        self._app = app
+        self._verifier = verifier
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
+        for name, value in scope.get("headers", []):
+            if name == b"authorization":
+                raw = value.decode("latin-1", errors="ignore")
+                if raw.lower().startswith("bearer "):
+                    # verify_token sets the ContextVars; return value unused.
+                    await self._verifier.verify_token(raw[7:])
+                break
+
+        await self._app(scope, receive, send)
+
+
+def default_verifier() -> JWKSTokenVerifier:
+    """JWT verifier wired against the canonical authorization server."""
+    return JWKSTokenVerifier(jwks_uri=JWKS_URI, issuer=ISSUER, audience=AUDIENCE)
 
 
 def current_scopes() -> frozenset[str]:
@@ -173,19 +173,17 @@ def current_scopes() -> frozenset[str]:
 
     Empty when the request is anonymous (no token in flight).
     """
-    token = get_access_token()
-    if token is None:
+    raw = current_user_scopes.get()
+    if not raw:
         return frozenset()
-    return frozenset(token.scopes)
+    return frozenset(raw.split())
 
 
 class ScopeRequiredError(PermissionError):
     """Raised when the current request is missing a required OAuth scope.
 
-    The string form doubles as a user-facing CTA - FastMCP serializes it
-    into the tool error result that the calling LLM sees, so embedding
-    the login URL here is what surfaces "log in to unlock" in chats and
-    external MCP clients without extra plumbing.
+    The string form is surfaced as the tool error a calling LLM sees,
+    so the embedded login URL doubles as the actionable hint.
     """
 
     def __init__(self, scope: str) -> None:

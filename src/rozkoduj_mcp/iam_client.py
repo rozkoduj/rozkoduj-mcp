@@ -2,11 +2,9 @@
 
 Fetches a signed ID token from the platform metadata server with the data
 API URL as audience, and uses it as the ``Authorization: Bearer`` value
-on every outbound call.
-
-Tokens are valid for 60 minutes; we refresh proactively at 55 to dodge
-edge-of-validity churn. The metadata hop is to a link-local address that
-fast-fails when the process is not running on the platform.
+on every outbound call. Tokens are valid for 60 minutes and refreshed at
+55 to dodge edge-of-validity churn. The metadata hop goes to a link-local
+address that fast-fails when the process is not running on the platform.
 """
 
 import asyncio
@@ -84,7 +82,7 @@ async def _fetch(audience: str) -> str | None:
 
 
 def reset_cache() -> None:
-    """Clear the cached token. Tests use this; not part of the public API."""
+    """Clear the cached token. Internal helper, not part of the public API."""
     global _cached_token, _cached_at
     _cached_token = None
     _cached_at = 0.0

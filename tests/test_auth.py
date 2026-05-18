@@ -9,22 +9,18 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from mcp.server.auth.middleware.auth_context import auth_context_var
-from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
-from mcp.server.auth.provider import AccessToken
 
 from rozkoduj_mcp.auth import (
     AUDIENCE,
     ISSUER,
     JWKS_URI,
-    REQUIRED_SCOPES,
     JWKSTokenVerifier,
     ScopeRequiredError,
     current_scopes,
     current_user_id,
     current_user_scopes,
     current_user_tier,
-    default_auth,
+    default_verifier,
     requires_scope,
 )
 
@@ -312,21 +308,16 @@ class TestJWKSFetch:
             assert await verifier.verify_token(_sign(private)) is None
 
 
-class TestDefaultAuth:
+class TestDefaultVerifier:
     def test_wires_canonical_endpoints(self) -> None:
-        verifier, settings = default_auth()
+        verifier = default_verifier()
         assert verifier._issuer == ISSUER
         assert verifier._audience == AUDIENCE
         assert verifier._jwks_uri == JWKS_URI
-        assert settings.required_scopes == REQUIRED_SCOPES
-        assert str(settings.issuer_url).rstrip("/") == ISSUER.rstrip("/")
-        assert str(settings.resource_server_url).rstrip("/") == AUDIENCE.rstrip("/")
 
 
-def _bind_user(*, scopes: list[str], token: str = "tok") -> Any:  # noqa: S107
-    """Bind an AuthenticatedUser to the auth context. Returns the reset handle."""
-    user = AuthenticatedUser(AccessToken(token=token, client_id="cli", scopes=scopes))
-    return auth_context_var.set(user)
+def _bind_user(*, scopes: list[str]) -> Any:
+    return current_user_scopes.set(" ".join(scopes))
 
 
 class TestCurrentScopes:
@@ -338,7 +329,7 @@ class TestCurrentScopes:
         try:
             assert current_scopes() == frozenset({"a", "b"})
         finally:
-            auth_context_var.reset(reset)
+            current_user_scopes.reset(reset)
 
 
 class TestUserIdentityContextVars:
@@ -352,15 +343,15 @@ class TestUserIdentityContextVars:
     ) -> None:
         private, jwk = keypair
         verifier = _make_verifier(jwk)
-        # Burn in a known-bad value so we can confirm verify_token sets it.
+        # Pre-seed each ContextVar so the assertions below prove the
+        # write came from verify_token, not from a default value.
         current_user_id.set("stale")
         current_user_tier.set("stale")
         current_user_scopes.set("stale")
         await verifier.verify_token(_sign(private, scope="mcp:read mcp:knowledge:read"))
         assert current_user_id.get() == "user-1"
         assert current_user_scopes.get() == "mcp:read mcp:knowledge:read"
-        # No tier claim on the test fixture token -> defaults to "free".
-        assert current_user_tier.get() == "free"
+        assert current_user_tier.get() == ""
 
     @pytest.mark.anyio
     async def test_tier_claim_propagated(
@@ -407,7 +398,7 @@ class TestRequiresScope:
                 await call()
             assert exc.value.scope == "mcp:knowledge:read"
         finally:
-            auth_context_var.reset(reset)
+            current_user_scopes.reset(reset)
 
     @pytest.mark.anyio
     async def test_denies_anonymous(self) -> None:
@@ -428,7 +419,7 @@ class TestRequiresScope:
         try:
             assert await call(3) == 6
         finally:
-            auth_context_var.reset(reset)
+            current_user_scopes.reset(reset)
 
 
 class TestScopeRequiredErrorContent:
@@ -450,3 +441,72 @@ class TestScopeRequiredErrorContent:
         message = str(err).lower()
         for plan in ("pro", "premium", "max", "tier"):
             assert plan not in message
+
+
+class TestJWTAuthContextMiddleware:
+    @staticmethod
+    def _http_scope(headers: list[tuple[bytes, bytes]]) -> dict[str, Any]:
+        return {"type": "http", "method": "POST", "path": "/mcp", "headers": headers}
+
+    @pytest.mark.anyio
+    async def test_anonymous_request_calls_through_without_touching_jwt(self) -> None:
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock()
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        receive, send = AsyncMock(), AsyncMock()
+        await middleware(self._http_scope(headers=[]), receive, send)
+
+        downstream.assert_awaited_once()
+        verifier.verify_token.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_bearer_header_triggers_verification(self) -> None:
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock(return_value=None)
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        scope = self._http_scope(
+            headers=[(b"authorization", b"Bearer tok-123")],
+        )
+        await middleware(scope, AsyncMock(), AsyncMock())
+
+        verifier.verify_token.assert_awaited_once_with("tok-123")
+        downstream.assert_awaited_once()
+
+    @pytest.mark.anyio
+    async def test_non_bearer_authorization_is_ignored(self) -> None:
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock()
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        scope = self._http_scope(
+            headers=[(b"authorization", b"Basic dXNlcjpwYXNz")],
+        )
+        await middleware(scope, AsyncMock(), AsyncMock())
+
+        verifier.verify_token.assert_not_called()
+        downstream.assert_awaited_once()
+
+    @pytest.mark.anyio
+    async def test_non_http_scope_passes_through(self) -> None:
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock()
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        await middleware({"type": "lifespan"}, AsyncMock(), AsyncMock())
+
+        verifier.verify_token.assert_not_called()
+        downstream.assert_awaited_once()
