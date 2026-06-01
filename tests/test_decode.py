@@ -49,13 +49,3 @@ class TestDecode:
         mock_scanner.decode.assert_called_once_with(
             symbol="ASML.AS", query="", lang="de"
         )
-
-    @pytest.mark.anyio
-    async def test_rejects_long_symbol(self) -> None:
-        with pytest.raises(ValueError, match="symbol"):
-            await decode(symbol="x" * 101)
-
-    @pytest.mark.anyio
-    async def test_rejects_long_query(self) -> None:
-        with pytest.raises(ValueError, match="query"):
-            await decode(symbol="AAPL", query="x" * 101)

@@ -4,13 +4,13 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, LangCode, SearchQuery
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def search_articles(
-    query: str,
-    locale: str | None = None,
+    query: SearchQuery,
+    locale: LangCode | None = None,
     limit: int = 5,
 ) -> dict[str, Any]:
     """Search Rozkoduj blog articles by keyword and meaning.
@@ -31,6 +31,5 @@ async def search_articles(
         locale: Optional ISO 639-1 language code (e.g. "en"). Omit to search all.
         limit: How many top chunks to return (1-20, default 5).
     """
-    validate_str(query, "query")
     limit = max(1, min(limit, 20))
     return await scanner.search_articles(query=query, locale=locale, limit=limit)

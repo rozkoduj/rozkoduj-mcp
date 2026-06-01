@@ -5,12 +5,12 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, ShortStr
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def compare(
-    symbols: list[str],
+    symbols: list[ShortStr],
     interval: Interval = "1d",
 ) -> list[dict[str, Any]]:
     """Compare technical analysis across multiple symbols. Max 10."""
@@ -20,8 +20,6 @@ async def compare(
     if len(symbols) > 10:
         msg = "symbols must contain at most 10 entries"
         raise ValueError(msg)
-    for sym in symbols:
-        validate_str(sym, "symbol")
 
     raw = await asyncio.gather(
         *(scanner.analyze(sym, interval) for sym in symbols),

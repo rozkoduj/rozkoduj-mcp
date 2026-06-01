@@ -44,8 +44,3 @@ class TestStrategyDetails:
         await strategy_details("01JABC")
 
         mock_scanner.strategy_details.assert_called_once_with("01JABC")
-
-    @pytest.mark.anyio
-    async def test_rejects_long_identifier(self) -> None:
-        with pytest.raises(ValueError, match="identifier"):
-            await strategy_details("x" * 200)

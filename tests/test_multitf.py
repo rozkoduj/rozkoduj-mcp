@@ -67,11 +67,6 @@ class TestMultitf:
             await multitf("BTC", timeframes=tfs)  # type: ignore[arg-type]
 
     @pytest.mark.anyio
-    async def test_rejects_long_symbol(self) -> None:
-        with pytest.raises(ValueError, match="symbol"):
-            await multitf("x" * 101)
-
-    @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.multitf.scanner")
     async def test_strong_buy_maps_to_buy(self, mock_scanner: MagicMock) -> None:
         mock_scanner.analyze = AsyncMock(return_value=mock_analysis("STRONG_BUY"))

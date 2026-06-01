@@ -122,7 +122,8 @@ class TestFetch:
     @pytest.mark.anyio
     async def test_returns_none_on_connect_error(self) -> None:
         """Outside Cloud Run the metadata hostname fails DNS / TCP - the
-        return value must be None so callers fall back to INTERNAL_API_KEY.
+        return value must be None so callers send the request without an
+        Authorization header and let the API enforce its own auth rules.
         """
         client = AsyncMock()
         client.__aenter__.return_value = client

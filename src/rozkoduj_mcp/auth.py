@@ -152,15 +152,28 @@ class JWTAuthContextMiddleware:
             await self._app(scope, receive, send)
             return
 
-        for name, value in scope.get("headers", []):
-            if name == b"authorization":
-                raw = value.decode("latin-1", errors="ignore")
-                if raw.lower().startswith("bearer "):
-                    # verify_token sets the ContextVars; return value unused.
-                    await self._verifier.verify_token(raw[7:])
-                break
+        # Bind identity to the anonymous default up front and keep the reset
+        # tokens. verify_token overwrites these for an authenticated request;
+        # the finally restores the pre-request state via the same Token
+        # discipline as RequestLoggingMiddleware, so identity can never bleed
+        # into a later request that reuses this context.
+        id_token = current_user_id.set("")
+        tier_token = current_user_tier.set("")
+        scopes_token = current_user_scopes.set("")
+        try:
+            for name, value in scope.get("headers", []):
+                if name == b"authorization":
+                    raw = value.decode("latin-1", errors="ignore")
+                    if raw.lower().startswith("bearer "):
+                        # verify_token sets the ContextVars; return value unused.
+                        await self._verifier.verify_token(raw[7:])
+                    break
 
-        await self._app(scope, receive, send)
+            await self._app(scope, receive, send)
+        finally:
+            current_user_id.reset(id_token)
+            current_user_tier.reset(tier_token)
+            current_user_scopes.reset(scopes_token)
 
 
 def default_verifier() -> JWKSTokenVerifier:

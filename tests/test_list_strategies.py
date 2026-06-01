@@ -90,8 +90,3 @@ class TestListStrategies:
 
         kwargs = mock_scanner.list_strategies.call_args.kwargs
         assert kwargs["offset"] == 0
-
-    @pytest.mark.anyio
-    async def test_rejects_long_family(self) -> None:
-        with pytest.raises(ValueError, match="family"):
-            await list_strategies(family="x" * 200)

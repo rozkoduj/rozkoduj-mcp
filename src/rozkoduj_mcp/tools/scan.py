@@ -6,7 +6,7 @@ from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Market, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Market
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
@@ -27,7 +27,7 @@ async def scan(
         Field(
             description=(
                 "Fields to return per row. Example: "
-                "['name', 'close', 'volume', 'change', 'RSI', 'market_cap_basic']. "
+                "['name', 'close', 'volume', 'change', 'RSI', 'market_cap']. "
                 "Defaults to a sensible baseline when omitted."
             ),
         ),
@@ -35,7 +35,8 @@ async def scan(
     sort_by: Annotated[
         str,
         Field(
-            description="Column name used to order results (e.g. 'volume', 'change')."
+            max_length=100,
+            description="Column name used to order results (e.g. 'volume', 'change').",
         ),
     ] = "volume",
     order: Literal["asc", "desc"] = "desc",
@@ -45,7 +46,6 @@ async def scan(
 
     Returns matching symbols with the requested columns.
     """
-    validate_str(sort_by, "sort_by")
     limit = max(1, min(limit, 100))
     if filters and len(filters) > 20:
         msg = "filters must contain at most 20 entries"
