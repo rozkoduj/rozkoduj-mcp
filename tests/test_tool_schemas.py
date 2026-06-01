@@ -38,6 +38,7 @@ class TestToolParameterBounds:
             ("calendar", "countries"),
             ("scan", "sort_by"),
             ("decode", "symbol"),
+            ("decode", "query"),
             ("multitf", "symbol"),
             ("buzz", "query"),
         ):
@@ -90,6 +91,20 @@ class TestBoundsEnforcedEndToEnd:
 
         with pytest.raises(ToolError, match="at least 2 characters"):
             await mcp.call_tool("search_articles", {"query": "x"})
+
+    @pytest.mark.anyio
+    async def test_overlong_query_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="at most 300 characters"):
+            await mcp.call_tool("search_articles", {"query": "x" * 301})
+
+    @pytest.mark.anyio
+    async def test_too_short_lang_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="at least 2 characters"):
+            await mcp.call_tool("buzz", {"query": "AAPL", "lang": "x"})
 
     @pytest.mark.anyio
     async def test_overlong_lang_rejected(self) -> None:
