@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, ShortStr
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
@@ -14,7 +14,7 @@ async def list_strategies(
         "sharpe_desc", "cagr_desc", "total_return_desc", "recent"
     ] = "sharpe_desc",
     visibility: Literal["public", "all"] = "public",
-    family: str | None = None,
+    family: ShortStr | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -30,8 +30,6 @@ async def list_strategies(
 
     For deep details on a single strategy use `strategy_details`.
     """
-    if family:
-        validate_str(family, "family")
     limit = max(1, min(limit, 50))
     offset = max(0, offset)
     return await scanner.list_strategies(

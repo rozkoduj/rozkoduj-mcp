@@ -6,7 +6,7 @@ from typing import Any
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, validate_str
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Interval, ShortStr
 
 _DEFAULT_TIMEFRAMES: list[str] = ["15m", "1h", "4h", "1d", "1W"]
 
@@ -22,14 +22,13 @@ def _classify(recommendation: str) -> str:
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
 async def multitf(
-    symbol: str,
+    symbol: ShortStr,
     timeframes: list[Interval] | None = None,
 ) -> dict[str, Any]:
     """Multi-timeframe analysis with alignment scoring.
 
     Default timeframes: 15m, 1h, 4h, 1d, 1W.
     """
-    validate_str(symbol, "symbol")
     tfs = timeframes if timeframes else _DEFAULT_TIMEFRAMES
     if len(tfs) > 10:
         msg = "timeframes must contain at most 10 entries"
