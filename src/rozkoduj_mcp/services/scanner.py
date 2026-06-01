@@ -12,6 +12,12 @@ from typing import Any
 import httpx
 
 from rozkoduj_mcp import iam_client
+from rozkoduj_mcp.auth import (
+    current_user_id,
+    current_user_scopes,
+    current_user_tier,
+)
+from rozkoduj_mcp.logging import current_trace_header
 
 # Managed by server / HTTP lifespan - created on startup, closed on shutdown.
 client: httpx.AsyncClient | None = None
@@ -112,13 +118,6 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
 
 async def _outbound_headers() -> dict[str, str]:
     """Build the auth, identity, and trace headers for an outbound call."""
-    from rozkoduj_mcp.auth import (
-        current_user_id,
-        current_user_scopes,
-        current_user_tier,
-    )
-    from rozkoduj_mcp.logging import current_trace_header
-
     headers: dict[str, str] = {}
 
     id_token = await iam_client.get_id_token()

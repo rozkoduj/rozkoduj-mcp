@@ -510,3 +510,26 @@ class TestJWTAuthContextMiddleware:
 
         verifier.verify_token.assert_not_called()
         downstream.assert_awaited_once()
+
+    @pytest.mark.anyio
+    async def test_identity_cleared_after_request(self) -> None:
+        """Identity must reset to the anonymous default once the request
+        finishes so it can never bleed into a later reused context."""
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware
+
+        async def _bind(_token: str) -> None:
+            current_user_id.set("user-1")
+            current_user_tier.set("pro")
+            current_user_scopes.set("mcp:read")
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock(side_effect=_bind)
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        scope = self._http_scope(headers=[(b"authorization", b"Bearer tok")])
+        await middleware(scope, AsyncMock(), AsyncMock())
+
+        assert current_user_id.get() == ""
+        assert current_user_tier.get() == ""
+        assert current_user_scopes.get() == ""
