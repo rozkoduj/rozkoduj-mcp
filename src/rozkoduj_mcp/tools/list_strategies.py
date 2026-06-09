@@ -1,6 +1,8 @@
 """MCP tool: list Rozkoduj's published trading strategies."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
+
+from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
@@ -15,8 +17,8 @@ async def list_strategies(
     ] = "sharpe_desc",
     visibility: Literal["public", "all"] = "public",
     family: ShortStr | None = None,
-    limit: int = 20,
-    offset: int = 0,
+    limit: Annotated[int, Field(ge=1, le=50)] = 20,
+    offset: Annotated[int, Field(ge=0, le=10000)] = 0,
 ) -> dict[str, Any]:
     """List Rozkoduj's published trading strategies.
 
@@ -30,8 +32,6 @@ async def list_strategies(
 
     For deep details on a single strategy use `strategy_details`.
     """
-    limit = max(1, min(limit, 50))
-    offset = max(0, offset)
     return await scanner.list_strategies(
         status=status,
         sort=sort,

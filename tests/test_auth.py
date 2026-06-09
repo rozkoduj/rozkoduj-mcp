@@ -264,6 +264,126 @@ class TestJWKSRotationRetry:
         assert refresh.await_count == 1
 
 
+def _mock_jwks_client(jwk: dict[str, Any]) -> AsyncMock:
+    """AsyncClient mock whose GET always serves a JWKS with ``jwk``."""
+    resp = MagicMock()
+    resp.json.return_value = {"keys": [jwk]}
+    resp.raise_for_status = MagicMock()
+    client = AsyncMock()
+    client.__aenter__.return_value = client
+    client.__aexit__.return_value = False
+    client.get = AsyncMock(return_value=resp)
+    return client
+
+
+class TestJWKSRefreshCooldown:
+    """Unknown kids and signature failures trigger a JWKS refresh, so a flood
+    of garbage tokens must not become one fetch against the authorization
+    server per request - refresh attempts are rate limited by a cooldown."""
+
+    @pytest.mark.anyio
+    async def test_unknown_kid_does_not_refetch_within_cooldown(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
+        private, jwk = keypair
+        verifier = JWKSTokenVerifier(
+            jwks_uri="https://issuer.example/jwks",
+            issuer=_ISSUER,
+            audience=_AUDIENCE,
+        )
+        client = _mock_jwks_client(jwk)
+        rogue = _sign(private, kid="unknown-kid")
+
+        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+            assert await verifier.verify_token(rogue) is None
+            assert await verifier.verify_token(rogue) is None
+
+        assert client.get.await_count == 1
+
+    @pytest.mark.anyio
+    async def test_bad_signature_does_not_refetch_within_cooldown(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
+        _, jwk = keypair
+        verifier = _make_verifier(jwk)
+        client = _mock_jwks_client(jwk)
+        # Known kid but signed with an unrelated key - forces the rotation
+        # retry, which must not fetch again while the cooldown is running.
+        forged = _sign(Ed25519PrivateKey.generate())
+
+        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+            assert await verifier.verify_token(forged) is None
+            assert await verifier.verify_token(forged) is None
+
+        assert client.get.await_count == 1
+
+    @pytest.mark.anyio
+    async def test_refetches_after_cooldown_expires(
+        self, keypair: tuple[Ed25519PrivateKey, dict[str, Any]]
+    ) -> None:
+        private, jwk = keypair
+        verifier = JWKSTokenVerifier(
+            jwks_uri="https://issuer.example/jwks",
+            issuer=_ISSUER,
+            audience=_AUDIENCE,
+        )
+        client = _mock_jwks_client(jwk)
+        rogue = _sign(private, kid="unknown-kid")
+
+        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+            assert await verifier.verify_token(rogue) is None
+            verifier._jwks_attempted_at = time.monotonic() - 31
+            assert await verifier.verify_token(rogue) is None
+
+        assert client.get.await_count == 2
+
+
+class TestTokenRejectionLogging:
+    """Every rejected bearer degrades the request to anonymous - that must
+    leave a log trail, or auth issues are invisible in production."""
+
+    @pytest.mark.anyio
+    async def test_logs_reason_for_invalid_token(
+        self,
+        keypair: tuple[Ed25519PrivateKey, dict[str, Any]],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        import logging as _logging
+
+        private, jwk = keypair
+        verifier = _make_verifier(jwk)
+        token = _sign(private, expires_in=-120)
+
+        with caplog.at_level(_logging.WARNING, logger="rozkoduj_mcp.auth"):
+            assert await verifier.verify_token(token) is None
+
+        rejected = [r for r in caplog.records if r.getMessage() == "token_rejected"]
+        assert len(rejected) == 1
+        assert "ExpiredSignature" in rejected[0].reason
+
+    @pytest.mark.anyio
+    async def test_logs_when_no_signing_key_matches(
+        self,
+        keypair: tuple[Ed25519PrivateKey, dict[str, Any]],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        import logging as _logging
+
+        private, jwk = keypair
+        verifier = _make_verifier(jwk)
+        token = _sign(private, kid="other-kid")
+
+        with (
+            patch.object(JWKSTokenVerifier, "_refresh_jwks", new=AsyncMock()),
+            caplog.at_level(_logging.WARNING, logger="rozkoduj_mcp.auth"),
+        ):
+            verifier._jwks_keys = {}
+            assert await verifier.verify_token(token) is None
+
+        rejected = [r for r in caplog.records if r.getMessage() == "token_rejected"]
+        assert len(rejected) == 1
+
+
 class TestJWKSFetch:
     @pytest.mark.anyio
     async def test_fetches_jwks_on_first_call(

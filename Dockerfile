@@ -2,7 +2,7 @@ FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fa
 
 WORKDIR /app
 
-COPY --from=ghcr.io/astral-sh/uv:0.11.17 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.17@sha256:03bdc89bb9798628846e60c3a9ad19006c8c3c724ccd2985a33145c039a0577b /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project

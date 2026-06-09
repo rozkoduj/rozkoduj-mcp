@@ -40,14 +40,3 @@ class TestCalendar:
         mock_scanner.calendar.assert_called_once_with(
             days=14, countries="US,EU", importance=1
         )
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.calendar.scanner")
-    async def test_clamps_days(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.calendar = AsyncMock(return_value=_mock_result())
-
-        await calendar(days=999)
-
-        mock_scanner.calendar.assert_called_once_with(
-            days=30, countries="US", importance=0
-        )

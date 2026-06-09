@@ -62,19 +62,6 @@ class TestSearchKnowledge:
         assert mock_scanner.search_knowledge.call_args.kwargs["limit"] == 5
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.search_knowledge.scanner")
-    async def test_limit_clamped(
-        self, mock_scanner: AsyncMock, authorized_caller: None
-    ) -> None:
-        mock_scanner.search_knowledge = AsyncMock(
-            return_value={"query": "q", "items": []}
-        )
-
-        await search_knowledge(query="q", limit=99)
-
-        assert mock_scanner.search_knowledge.call_args.kwargs["limit"] == 20
-
-    @pytest.mark.anyio
     async def test_denies_anonymous_callers(self) -> None:
         from rozkoduj_mcp.auth import ScopeRequiredError
 

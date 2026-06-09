@@ -57,26 +57,6 @@ class TestScan:
         assert len(result) == 2
 
     @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.scan.scanner")
-    async def test_limit_capped_at_100(self, mock_scanner: MagicMock) -> None:
-        mock_scanner.scan_market = AsyncMock(return_value=[])
-
-        await scan(limit=200)
-
-        call_kwargs = mock_scanner.scan_market.call_args[1]
-        assert call_kwargs["limit"] == 100
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.scan.scanner")
-    async def test_limit_minimum_1(self, mock_scanner: MagicMock) -> None:
-        mock_scanner.scan_market = AsyncMock(return_value=[])
-
-        await scan(limit=0)
-
-        call_kwargs = mock_scanner.scan_market.call_args[1]
-        assert call_kwargs["limit"] == 1
-
-    @pytest.mark.anyio
     async def test_rejects_too_many_filters(self) -> None:
         filters = [
             {"left": "volume", "operation": "greater", "right": i} for i in range(21)
