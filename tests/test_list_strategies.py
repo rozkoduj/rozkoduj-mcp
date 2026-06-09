@@ -60,33 +60,3 @@ class TestListStrategies:
             limit=5,
             offset=10,
         )
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.list_strategies.scanner")
-    async def test_clamps_limit_high(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.list_strategies = AsyncMock(return_value=_mock_result())
-
-        await list_strategies(limit=999)
-
-        kwargs = mock_scanner.list_strategies.call_args.kwargs
-        assert kwargs["limit"] == 50
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.list_strategies.scanner")
-    async def test_clamps_limit_low(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.list_strategies = AsyncMock(return_value=_mock_result())
-
-        await list_strategies(limit=0)
-
-        kwargs = mock_scanner.list_strategies.call_args.kwargs
-        assert kwargs["limit"] == 1
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.list_strategies.scanner")
-    async def test_clamps_offset_negative(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.list_strategies = AsyncMock(return_value=_mock_result())
-
-        await list_strategies(offset=-5)
-
-        kwargs = mock_scanner.list_strategies.call_args.kwargs
-        assert kwargs["offset"] == 0

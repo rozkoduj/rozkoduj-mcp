@@ -1,6 +1,8 @@
 """MCP tool: pre-built intelligent screens."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
+
+from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
@@ -133,14 +135,13 @@ _PRESETS: dict[str, dict[str, Any]] = {
 async def smart_screen(
     preset: Preset,
     market: Market = "us",
-    limit: int = 20,
+    limit: Annotated[int, Field(ge=1, le=50)] = 20,
 ) -> list[dict[str, Any]]:
     """Run a pre-built intelligent screen.
 
     Presets: unusual_volume, oversold_bounce, breakout, momentum, dividend, value, growth.
     Value and growth combine fundamental data with technical analysis.
     """
-    limit = max(1, min(limit, 50))
     config = _PRESETS[preset]
 
     return await scanner.scan_market(

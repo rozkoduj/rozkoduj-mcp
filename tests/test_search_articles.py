@@ -51,14 +51,3 @@ class TestSearchArticles:
         call = mock_scanner.search_articles.call_args
         assert call.kwargs["locale"] is None
         assert call.kwargs["limit"] == 5
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.search_articles.scanner")
-    async def test_limit_clamped(self, mock_scanner: AsyncMock) -> None:
-        mock_scanner.search_articles = AsyncMock(
-            return_value={"query": "q", "items": []}
-        )
-
-        await search_articles(query="q", limit=999)
-
-        assert mock_scanner.search_articles.call_args.kwargs["limit"] == 20

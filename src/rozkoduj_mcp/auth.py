@@ -1,6 +1,7 @@
 """JWT identity extraction and per-tool scope gating."""
 
 import functools
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
@@ -10,6 +11,8 @@ import httpx
 import jwt
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from starlette.types import ASGIApp, Receive, Scope, Send
+
+logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -45,17 +48,33 @@ class JWKSTokenVerifier(TokenVerifier):
         issuer: str,
         audience: str,
         jwks_ttl_seconds: float = 3600.0,
+        jwks_refresh_cooldown_seconds: float = 30.0,
         http_timeout: float = 5.0,
     ) -> None:
         self._jwks_uri = jwks_uri
         self._issuer = issuer
         self._audience = audience
         self._jwks_ttl = jwks_ttl_seconds
+        self._jwks_cooldown = jwks_refresh_cooldown_seconds
         self._http_timeout = http_timeout
         self._jwks_keys: dict[str, dict[str, Any]] = {}
         self._jwks_fetched_at: float = 0.0
+        self._jwks_attempted_at: float | None = None
 
     async def _refresh_jwks(self) -> None:
+        # Unknown kids and signature failures trigger a refresh, so without
+        # a cooldown a flood of garbage tokens would turn into one fetch
+        # against the authorization server per request. Worst case a freshly
+        # rotated key waits one cooldown before it is picked up.
+        now = time.monotonic()
+        if (
+            self._jwks_attempted_at is not None
+            and (now - self._jwks_attempted_at) < self._jwks_cooldown
+        ):
+            return
+        # Stamped before the fetch so failed attempts burn the cooldown too -
+        # an unreachable JWKS endpoint must not get hammered either.
+        self._jwks_attempted_at = now
         async with httpx.AsyncClient(timeout=self._http_timeout) as client:
             resp = await client.get(self._jwks_uri)
             resp.raise_for_status()
@@ -105,15 +124,23 @@ class JWKSTokenVerifier(TokenVerifier):
         return None  # pragma: no cover
 
     async def verify_token(self, token: str) -> AccessToken | None:
+        # A rejected bearer silently degrades the request to anonymous, so
+        # every rejection path leaves a log trail for production debugging.
         try:
             header = jwt.get_unverified_header(token)
             kid = header.get("kid")
             if not isinstance(kid, str):
+                logger.warning("token_rejected", extra={"reason": "missing kid"})
                 return None
             payload = await self._decode_with_rotation_retry(token, kid)
             if payload is None:
+                logger.warning(
+                    "token_rejected",
+                    extra={"reason": "no matching signing key or bad signature"},
+                )
                 return None
-        except jwt.PyJWTError, httpx.HTTPError, ValueError, KeyError:
+        except (jwt.PyJWTError, httpx.HTTPError, ValueError, KeyError) as exc:
+            logger.warning("token_rejected", extra={"reason": repr(exc)})
             return None
 
         scope_claim = payload.get("scope") or payload.get("scp") or ""

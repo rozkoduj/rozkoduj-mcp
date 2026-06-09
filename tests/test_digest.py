@@ -53,26 +53,6 @@ class TestDigest:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.digest.scanner")
-    async def test_limit_capped_at_100(self, mock_scanner: MagicMock) -> None:
-        mock_scanner.digest = AsyncMock(return_value=_mock_digest_result())
-
-        await digest(limit=200)
-
-        call_kwargs = mock_scanner.digest.call_args[1]
-        assert call_kwargs["limit"] == 100
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.digest.scanner")
-    async def test_limit_minimum_1(self, mock_scanner: MagicMock) -> None:
-        mock_scanner.digest = AsyncMock(return_value=_mock_digest_result())
-
-        await digest(limit=0)
-
-        call_kwargs = mock_scanner.digest.call_args[1]
-        assert call_kwargs["limit"] == 1
-
-    @pytest.mark.anyio
-    @patch("rozkoduj_mcp.tools.digest.scanner")
     async def test_includes_pulse(self, mock_scanner: MagicMock) -> None:
         mock_scanner.digest = AsyncMock(return_value=_mock_digest_result())
 

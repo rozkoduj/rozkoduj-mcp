@@ -40,13 +40,12 @@ async def scan(
         ),
     ] = "volume",
     order: Literal["asc", "desc"] = "desc",
-    limit: int = 20,
+    limit: Annotated[int, Field(ge=1, le=100)] = 20,
 ) -> list[dict[str, Any]]:
     """Screen global markets by any indicator, fundamental, or metric.
 
     Returns matching symbols with the requested columns.
     """
-    limit = max(1, min(limit, 100))
     if filters and len(filters) > 20:
         msg = "filters must contain at most 20 entries"
         raise ValueError(msg)

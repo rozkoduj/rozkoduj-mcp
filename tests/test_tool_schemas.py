@@ -73,6 +73,41 @@ class TestToolParameterBounds:
         string_variant = next(v for v in family["anyOf"] if v.get("type") == "string")
         assert string_variant["maxLength"] == 100
 
+    @pytest.mark.anyio
+    async def test_numeric_params_carry_min_and_max(self) -> None:
+        # Numeric bounds live in the schema (not a silent clamp in the tool
+        # body) so the calling LLM sees the range and self-limits.
+        schemas = await _schemas()
+        for tool, param, low, high in (
+            ("scan", "limit", 1, 100),
+            ("digest", "limit", 1, 100),
+            ("movers", "limit", 1, 50),
+            ("smart_screen", "limit", 1, 50),
+            ("list_strategies", "limit", 1, 50),
+            ("search_articles", "limit", 1, 20),
+            ("search_knowledge", "limit", 1, 20),
+            ("calendar", "days", 1, 30),
+        ):
+            field = schemas[tool]["properties"][param]
+            assert field["minimum"] == low, f"{tool}.{param}"
+            assert field["maximum"] == high, f"{tool}.{param}"
+
+    @pytest.mark.anyio
+    async def test_strategy_identifier_is_path_safe(self) -> None:
+        # The identifier lands in the upstream request path, so the schema
+        # restricts it to slug / ULID characters - no separators or dots.
+        schemas = await _schemas()
+        identifier = schemas["strategy_details"]["properties"]["identifier"]
+        assert identifier["pattern"] == "^[A-Za-z0-9_-]+$"
+        assert identifier["maxLength"] == 100
+
+    @pytest.mark.anyio
+    async def test_pagination_offset_bounded(self) -> None:
+        schemas = await _schemas()
+        offset = schemas["list_strategies"]["properties"]["offset"]
+        assert offset["minimum"] == 0
+        assert offset["maximum"] == 10000
+
 
 class TestBoundsEnforcedEndToEnd:
     """Schema assertions prove the bound is advertised; these prove FastMCP
@@ -112,3 +147,38 @@ class TestBoundsEnforcedEndToEnd:
 
         with pytest.raises(ToolError, match="at most 10 characters"):
             await mcp.call_tool("buzz", {"query": "AAPL", "lang": "x" * 11})
+
+    @pytest.mark.anyio
+    async def test_oversized_limit_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="less than or equal to 100"):
+            await mcp.call_tool("scan", {"limit": 200})
+
+    @pytest.mark.anyio
+    async def test_zero_limit_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="greater than or equal to 1"):
+            await mcp.call_tool("digest", {"limit": 0})
+
+    @pytest.mark.anyio
+    async def test_oversized_days_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="less than or equal to 30"):
+            await mcp.call_tool("calendar", {"days": 999})
+
+    @pytest.mark.anyio
+    async def test_negative_offset_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="greater than or equal to 0"):
+            await mcp.call_tool("list_strategies", {"offset": -5})
+
+    @pytest.mark.anyio
+    async def test_path_like_identifier_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="match pattern"):
+            await mcp.call_tool("strategy_details", {"identifier": "../market-pulse"})
