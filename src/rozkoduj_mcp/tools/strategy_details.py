@@ -1,14 +1,20 @@
 """MCP tool: details for a single Rozkoduj trading strategy."""
 
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, ShortStr
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS
+
+# Slug / ULID characters only. The identifier is interpolated into the
+# upstream request path, so the pattern also keeps it path-safe.
+StrategyId = Annotated[str, Field(max_length=100, pattern=r"^[A-Za-z0-9_-]+$")]
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
-async def strategy_details(identifier: ShortStr) -> dict[str, Any]:
+async def strategy_details(identifier: StrategyId) -> dict[str, Any]:
     """Get full details for a single Rozkoduj strategy.
 
     `identifier` is either the URL slug (e.g. `ma-cross-ema`) or the

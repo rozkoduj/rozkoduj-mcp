@@ -93,6 +93,15 @@ class TestToolParameterBounds:
             assert field["maximum"] == high, f"{tool}.{param}"
 
     @pytest.mark.anyio
+    async def test_strategy_identifier_is_path_safe(self) -> None:
+        # The identifier lands in the upstream request path, so the schema
+        # restricts it to slug / ULID characters - no separators or dots.
+        schemas = await _schemas()
+        identifier = schemas["strategy_details"]["properties"]["identifier"]
+        assert identifier["pattern"] == "^[A-Za-z0-9_-]+$"
+        assert identifier["maxLength"] == 100
+
+    @pytest.mark.anyio
     async def test_pagination_offset_bounded(self) -> None:
         schemas = await _schemas()
         offset = schemas["list_strategies"]["properties"]["offset"]
@@ -166,3 +175,10 @@ class TestBoundsEnforcedEndToEnd:
 
         with pytest.raises(ToolError, match="greater than or equal to 0"):
             await mcp.call_tool("list_strategies", {"offset": -5})
+
+    @pytest.mark.anyio
+    async def test_path_like_identifier_rejected(self) -> None:
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError, match="match pattern"):
+            await mcp.call_tool("strategy_details", {"identifier": "../market-pulse"})
