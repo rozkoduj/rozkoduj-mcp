@@ -684,6 +684,43 @@ class TestSearchKnowledge:
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_forwards_client_ip_header(
+        self,
+        mock_client: AsyncMock,
+    ) -> None:
+        from rozkoduj_mcp.auth import current_client_ip
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+        ip_reset = current_client_ip.set("203.0.113.7")
+        try:
+            await search_knowledge(query="x")
+        finally:
+            current_client_ip.reset(ip_reset)
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["X-Client-Ip"] == "203.0.113.7"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_omits_client_ip_header_when_unset(
+        self,
+        mock_client: AsyncMock,
+    ) -> None:
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+
+        await search_knowledge(query="x")
+
+        assert "X-Client-Ip" not in mock_client.post.call_args[1]["headers"]
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
     async def test_forwards_trace_header_to_api(
         self,
         mock_client: AsyncMock,

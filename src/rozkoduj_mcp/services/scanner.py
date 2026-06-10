@@ -13,6 +13,7 @@ import httpx
 
 from rozkoduj_mcp import iam_client
 from rozkoduj_mcp.auth import (
+    current_client_ip,
     current_user_id,
     current_user_scopes,
     current_user_tier,
@@ -133,6 +134,12 @@ async def _outbound_headers() -> dict[str, str]:
         scopes = current_user_scopes.get()
         if scopes:
             headers["X-User-Scopes"] = scopes
+
+    # End-client IP for anonymous quota bucketing at the API (trusted there
+    # only because our service identity is allowlisted).
+    client_ip = current_client_ip.get()
+    if client_ip:
+        headers["X-Client-Ip"] = client_ip
 
     trace = current_trace_header.get()
     if trace:

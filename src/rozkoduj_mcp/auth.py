@@ -1,6 +1,7 @@
 """JWT identity extraction and per-tool scope gating."""
 
 import functools
+import ipaddress
 import logging
 import time
 from collections.abc import Awaitable, Callable
@@ -22,6 +23,10 @@ R = TypeVar("R")
 current_user_id: ContextVar[str] = ContextVar("current_user_id", default="")
 current_user_tier: ContextVar[str] = ContextVar("current_user_tier", default="")
 current_user_scopes: ContextVar[str] = ContextVar("current_user_scopes", default="")
+# End-client IP (last X-Forwarded-For hop) — forwarded to the data API as
+# X-Client-Ip so anonymous quota buckets key on the real client, not this
+# service's egress IP (which would be one shared bucket for all anon users).
+current_client_ip: ContextVar[str] = ContextVar("current_client_ip", default="")
 
 # Single accepted signing algorithm. EdDSA / Ed25519 is the modern default
 # (RFC 8037): smaller keys, constant-time verify, no padding attacks.
@@ -167,6 +172,24 @@ class JWKSTokenVerifier(TokenVerifier):
         )
 
 
+def _trusted_client_ip(forwarded_for: str) -> str:
+    """End-client IP from X-Forwarded-For: rightmost entry, validated.
+
+    Cloud Run's frontend APPENDS the connecting client's IP and does not
+    strip client-supplied entries, so only the LAST hop is trustworthy —
+    the leftmost value is attacker-controlled (a spoofed header would let
+    an anonymous client rotate quota buckets at will). Assumes direct
+    Cloud Run ingress (no LB in front); returns "" when the value does
+    not parse as an IP, so garbage never becomes a quota bucket.
+    """
+    candidate = forwarded_for.rsplit(",", 1)[-1].strip()
+    try:
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return ""
+    return candidate
+
+
 class JWTAuthContextMiddleware:
     """ASGI middleware that tags a request with verified JWT identity."""
 
@@ -179,6 +202,15 @@ class JWTAuthContextMiddleware:
             await self._app(scope, receive, send)
             return
 
+        auth_header = ""
+        forwarded_for: list[str] = []
+        for name, value in scope.get("headers", []):
+            if name == b"authorization" and not auth_header:
+                auth_header = value.decode("latin-1", errors="ignore")
+            elif name == b"x-forwarded-for":
+                forwarded_for.append(value.decode("latin-1", errors="ignore"))
+        client_ip = _trusted_client_ip(",".join(forwarded_for))
+
         # Bind identity to the anonymous default up front and keep the reset
         # tokens. verify_token overwrites these for an authenticated request;
         # the finally restores the pre-request state via the same Token
@@ -187,20 +219,18 @@ class JWTAuthContextMiddleware:
         id_token = current_user_id.set("")
         tier_token = current_user_tier.set("")
         scopes_token = current_user_scopes.set("")
+        ip_token = current_client_ip.set(client_ip)
         try:
-            for name, value in scope.get("headers", []):
-                if name == b"authorization":
-                    raw = value.decode("latin-1", errors="ignore")
-                    if raw.lower().startswith("bearer "):
-                        # verify_token sets the ContextVars; return value unused.
-                        await self._verifier.verify_token(raw[7:])
-                    break
+            if auth_header.lower().startswith("bearer "):
+                # verify_token sets the ContextVars; return value unused.
+                await self._verifier.verify_token(auth_header[7:])
 
             await self._app(scope, receive, send)
         finally:
             current_user_id.reset(id_token)
             current_user_tier.reset(tier_token)
             current_user_scopes.reset(scopes_token)
+            current_client_ip.reset(ip_token)
 
 
 def default_verifier() -> JWKSTokenVerifier:
