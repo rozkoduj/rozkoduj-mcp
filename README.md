@@ -5,7 +5,7 @@
   <img alt="Rozkoduj MCP" src="https://raw.githubusercontent.com/rozkoduj/rozkoduj-mcp/main/docs/assets/logo.svg" width="240">
 </picture>
 
-# Rozkoduj MCP - Decode the Markets
+# Decode the Markets
 
 Screening, analysis, and scoring across stocks, crypto, and forex - right inside your AI assistant.
 
