@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rozkoduj/rozkoduj-mcp/main/docs/assets/logo-dark.svg">
-  <img alt="Rozkoduj MCP" src="https://raw.githubusercontent.com/rozkoduj/rozkoduj-mcp/main/docs/assets/logo.svg" width="220">
+  <img alt="Rozkoduj MCP" src="https://raw.githubusercontent.com/rozkoduj/rozkoduj-mcp/main/docs/assets/logo.svg" width="240">
 </picture>
 
 # Rozkoduj MCP - Decode the Markets
