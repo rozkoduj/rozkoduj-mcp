@@ -7,7 +7,7 @@
 
 # Decode the Markets
 
-Screening, analysis, and scoring across stocks, crypto, and forex - right inside your AI assistant.
+Market Intelligence for your AI assistant - screening, analysis, and scoring across stocks, crypto, and forex.
 
 [![PyPI](https://img.shields.io/pypi/v/rozkoduj-mcp)](https://pypi.org/project/rozkoduj-mcp/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
