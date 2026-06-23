@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 613" width="640" height="613">
   <defs>
     <style>
-      .wick { stroke: #33AACC; stroke-width: 12; stroke-linecap: butt; fill: none; }
-      .body { fill: #33AACC; }
+      .wick { stroke: #0068fc; stroke-width: 12; stroke-linecap: butt; fill: none; }
+      .body { fill: #0068fc; }
     </style>
     <symbol id="d0" overflow="visible">
-      <ellipse cx="0" cy="0" rx="7" ry="11" fill="none" stroke="#33AACC" stroke-width="5"/>
+      <ellipse cx="0" cy="0" rx="7" ry="11" fill="none" stroke="#0068fc" stroke-width="5"/>
     </symbol>
     <symbol id="d1" overflow="visible">
-      <path d="M-3.3 -5.5 L3.3 -11 L3.3 11" fill="none" stroke="#33AACC" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M-3.3 -5.5 L3.3 -11 L3.3 11" fill="none" stroke="#0068fc" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
     </symbol>
   </defs>
 
