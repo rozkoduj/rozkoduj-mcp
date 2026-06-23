@@ -7,6 +7,7 @@ separate identity headers; the caller's bearer is never forwarded
 """
 
 import asyncio
+import os
 from typing import Any
 
 import httpx
@@ -121,9 +122,12 @@ async def _outbound_headers() -> dict[str, str]:
     """Build the auth, identity, and trace headers for an outbound call."""
     headers: dict[str, str] = {}
 
-    id_token = await iam_client.get_id_token()
-    if id_token is not None:
-        headers["Authorization"] = f"Bearer {id_token}"
+    # Service-identity token when running on Cloud Run; a configured API key
+    # for self-hosted deployments off-platform (the data API accepts either -
+    # it tells them apart by shape). IAM identity always takes precedence.
+    credential = await iam_client.get_id_token() or os.environ.get("ROZKODUJ_API_KEY")
+    if credential:
+        headers["Authorization"] = f"Bearer {credential}"
 
     user_id = current_user_id.get()
     if user_id:
