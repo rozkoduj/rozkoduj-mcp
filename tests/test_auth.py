@@ -653,3 +653,50 @@ class TestJWTAuthContextMiddleware:
         assert current_user_id.get() == ""
         assert current_user_tier.get() == ""
         assert current_user_scopes.get() == ""
+
+    async def _client_ip_seen_downstream(
+        self, headers: list[tuple[bytes, bytes]]
+    ) -> str:
+        """Run a request through the middleware and capture the client-IP
+        ContextVar as the downstream app sees it."""
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware, current_client_ip
+
+        captured: dict[str, str] = {}
+
+        async def downstream(scope: Any, receive: Any, send: Any) -> None:
+            captured["ip"] = current_client_ip.get()
+
+        middleware = JWTAuthContextMiddleware(downstream, verifier=MagicMock())
+        await middleware(self._http_scope(headers=headers), AsyncMock(), AsyncMock())
+        return captured["ip"]
+
+    @pytest.mark.anyio
+    async def test_client_ip_is_rightmost_forwarded_hop(self) -> None:
+        """Cloud Run appends the real client IP last and never strips
+        client-supplied entries — the leftmost hop is attacker-controlled."""
+        ip = await self._client_ip_seen_downstream(
+            [(b"x-forwarded-for", b"6.6.6.6, 203.0.113.7")]
+        )
+        assert ip == "203.0.113.7"
+
+    @pytest.mark.anyio
+    async def test_client_ip_spans_repeated_forwarded_headers(self) -> None:
+        ip = await self._client_ip_seen_downstream(
+            [
+                (b"x-forwarded-for", b"6.6.6.6"),
+                (b"x-forwarded-for", b"203.0.113.7"),
+            ]
+        )
+        assert ip == "203.0.113.7"
+
+    @pytest.mark.anyio
+    async def test_client_ip_rejects_non_ip_garbage(self) -> None:
+        ip = await self._client_ip_seen_downstream(
+            [(b"x-forwarded-for", b"6.6.6.6, not-an-ip")]
+        )
+        assert ip == ""
+
+    @pytest.mark.anyio
+    async def test_client_ip_empty_without_forwarded_header(self) -> None:
+        ip = await self._client_ip_seen_downstream([])
+        assert ip == ""
