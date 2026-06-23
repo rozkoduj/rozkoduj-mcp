@@ -650,7 +650,8 @@ class TestSearchKnowledge:
             return_value=_mock_response({"query": "q", "items": []})
         )
 
-        await search_knowledge(query="x")
+        with patch.dict("os.environ", {"ROZKODUJ_API_KEY": ""}):
+            await search_knowledge(query="x")
 
         assert mock_client.post.call_args[1]["headers"] == {}
 
@@ -743,3 +744,58 @@ class TestSearchKnowledge:
 
         headers = mock_client.post.call_args[1]["headers"]
         assert headers["X-Cloud-Trace-Context"] == "trace-abc/0;o=1"
+
+
+class TestSelfHostApiKey:
+    """Outbound auth falls back to ROZKODUJ_API_KEY when no IAM token is
+    available (self-hosted deployments off Cloud Run)."""
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_falls_back_to_api_key_when_no_iam_token(
+        self,
+        mock_client: AsyncMock,
+    ) -> None:
+        from rozkoduj_mcp import iam_client
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+        with (
+            patch.object(iam_client, "_fetch", new=AsyncMock(return_value=None)),
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_selfhost_key"}),
+        ):
+            iam_client.reset_cache()
+            try:
+                await search_knowledge(query="x")
+            finally:
+                iam_client.reset_cache()
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["Authorization"] == "Bearer rzk_selfhost_key"
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_iam_token_takes_precedence_over_api_key(
+        self,
+        mock_client: AsyncMock,
+    ) -> None:
+        from rozkoduj_mcp import iam_client
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+        with (
+            patch.object(iam_client, "_fetch", new=AsyncMock(return_value="iam-token")),
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_should_be_ignored"}),
+        ):
+            iam_client.reset_cache()
+            try:
+                await search_knowledge(query="x")
+            finally:
+                iam_client.reset_cache()
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["Authorization"] == "Bearer iam-token"
