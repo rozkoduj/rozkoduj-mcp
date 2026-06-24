@@ -216,6 +216,23 @@ Is there any buzz around Tesla?
 
 20+ markets worldwide. Symbols are auto-detected - `BTCUSDT` routes to crypto, `AAPL` to US stocks, `EURUSD` to forex.
 
+## Self-host with your own key
+
+The hosted server at `https://mcp.rozkoduj.com/mcp` authenticates to the data
+API automatically. When you self-host the package off Cloud Run, supply your
+own Rozkoduj API key so calls run as your subscription tier instead of the
+anonymous tier:
+
+1. Mint a key in the Rozkoduj dashboard (format `rzk_` + 40 hex). It maps to
+   your account's tier; revoke it there at any time.
+2. Provide it via the `ROZKODUJ_API_KEY` environment variable - never inline in
+   committed config. In an MCP client, reference it as `${env:ROZKODUJ_API_KEY}`.
+3. A malformed value is ignored (requests fall back to anonymous); the active
+   posture is logged at startup, prefix only - the key is never logged.
+
+Precedence: Cloud Run IAM token (hosted) > `ROZKODUJ_API_KEY` (self-host) >
+anonymous.
+
 ## License
 
 MIT - [rozkoduj.com](https://rozkoduj.com)

@@ -7,7 +7,9 @@ separate identity headers; the caller's bearer is never forwarded
 """
 
 import asyncio
+import logging
 import os
+import re
 from typing import Any
 
 import httpx
@@ -33,6 +35,46 @@ _request_semaphore: asyncio.Semaphore | None = None
 # read-before-headers). httpx does not retry on 4xx/5xx by design;
 # those are deterministic and retrying just doubles latency.
 _TRANSPORT_RETRIES = 2
+
+logger = logging.getLogger(__name__)
+
+# A Rozkoduj API key is ``rzk_`` followed by 40 hex chars (44 chars total).
+_API_KEY_RE = re.compile(r"\Arzk_[0-9a-f]{40}\Z")
+
+
+def _self_host_credential() -> str | None:
+    """The configured self-host API key, when well-formed - else ``None``.
+
+    Off-platform deployments authenticate to the data API with a
+    Rozkoduj-issued ``rzk_`` key in ``ROZKODUJ_API_KEY``. A malformed value is
+    treated as absent rather than sent as a bearer that would only be rejected; the
+    malformed case is surfaced loudly once at startup (see
+    :func:`log_self_host_status`), so the hot path stays quiet.
+    """
+    key = os.environ.get("ROZKODUJ_API_KEY")
+    if key and _API_KEY_RE.match(key):
+        return key
+    return None
+
+
+def log_self_host_status() -> None:
+    """Log the outbound-auth posture once at startup, without the secret.
+
+    Outbound mode is environment-determined: on Cloud Run the IAM
+    service-identity token is used; off-platform a well-formed
+    ``ROZKODUJ_API_KEY`` is the fallback. Logs which is configured (prefix
+    only) so an operator can see why requests authenticate the way they do.
+    """
+    key = os.environ.get("ROZKODUJ_API_KEY")
+    if not key:
+        logger.info("outbound_auth: self-host key absent (IAM or anonymous)")
+        return
+    if _API_KEY_RE.match(key):
+        logger.info("outbound_auth: self-host key configured (prefix=%s)", key[:12])
+    else:
+        logger.warning(
+            "outbound_auth: self-host key malformed (expected rzk_ + 40 hex); ignoring"
+        )
 
 
 def setup_client(api_url: str, timeout: float = 20.0) -> httpx.AsyncClient:
@@ -125,7 +167,7 @@ async def _outbound_headers() -> dict[str, str]:
     # Service-identity token when running on the platform; a configured API key
     # for self-hosted deployments off-platform. Platform identity takes
     # precedence.
-    credential = await iam_client.get_id_token() or os.environ.get("ROZKODUJ_API_KEY")
+    credential = await iam_client.get_id_token() or _self_host_credential()
     if credential:
         headers["Authorization"] = f"Bearer {credential}"
 

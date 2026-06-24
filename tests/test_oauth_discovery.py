@@ -24,6 +24,7 @@ class TestProtectedResourceMetadata:
         body: dict[str, Any] = resp.json()
         assert body["resource"].rstrip("/") == AUDIENCE.rstrip("/")
         assert body["authorization_servers"] == [ISSUER]
+        assert body["scopes_supported"] == ["mcp:knowledge:read"]
         assert "header" in body["bearer_methods_supported"]
 
 
