@@ -122,9 +122,9 @@ async def _outbound_headers() -> dict[str, str]:
     """Build the auth, identity, and trace headers for an outbound call."""
     headers: dict[str, str] = {}
 
-    # Service-identity token when running on Cloud Run; a configured API key
-    # for self-hosted deployments off-platform (the data API accepts either -
-    # it tells them apart by shape). IAM identity always takes precedence.
+    # Service-identity token when running on the platform; a configured API key
+    # for self-hosted deployments off-platform. Platform identity takes
+    # precedence.
     credential = await iam_client.get_id_token() or os.environ.get("ROZKODUJ_API_KEY")
     if credential:
         headers["Authorization"] = f"Bearer {credential}"

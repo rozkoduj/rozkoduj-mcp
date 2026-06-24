@@ -28,19 +28,17 @@ current_user_scopes: ContextVar[str] = ContextVar("current_user_scopes", default
 # service's egress IP (which would be one shared bucket for all anon users).
 current_client_ip: ContextVar[str] = ContextVar("current_client_ip", default="")
 
-# Closed subscription-tier vocabulary, kept in sync with the data API. The MCP
-# enforces nothing on these (the data API meters); it must just not vouch a tier
-# the API won't recognise - an unknown claim degrades to anon before it is
-# forwarded as X-User-Tier.
+# Subscription tiers this server recognises. Used only to sanitize an inbound
+# tier claim - an unrecognised value is never treated as one of these.
 TIERS: frozenset[str] = frozenset({"anon", "free", "pro", "max"})
 
 
 def normalize_tier(raw: str | None) -> str:
-    """Return ``raw`` when it is a known tier, else ``anon`` (logged).
+    """Return ``raw`` when it is a known tier, else ``anon`` (logged for a
+    present-but-unknown value).
 
-    Guards the data API from cross-service version skew: a tier a newer issuer
-    mints before this service knows it must degrade to anon LOUDLY, never get
-    vouched verbatim. ``None`` / empty (the anonymous case) degrade quietly.
+    A malformed or unrecognised tier must never be treated as a higher tier
+    than it is. ``None`` / empty (a genuinely anonymous request) degrade quietly.
     """
     if raw is not None and raw in TIERS:
         return raw
@@ -180,9 +178,8 @@ class JWKSTokenVerifier(TokenVerifier):
             int(expires_at_raw) if isinstance(expires_at_raw, (int, float)) else None
         )
 
-        # Missing claims stay empty - no defaults injected. A present-but-
-        # unknown tier degrades to anon (normalize_tier) so we never vouch a
-        # tier the data API won't recognise.
+        # Missing claims stay empty - no defaults injected. An unknown tier
+        # claim is normalized to anon rather than trusted verbatim.
         tier_claim = payload.get("tier")
         current_user_id.set(str(payload.get("sub") or ""))
         current_user_tier.set(normalize_tier(str(tier_claim)) if tier_claim else "")
