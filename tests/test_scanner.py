@@ -764,7 +764,7 @@ class TestSelfHostApiKey:
         )
         with (
             patch.object(iam_client, "_fetch", new=AsyncMock(return_value=None)),
-            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_selfhost_key"}),
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_" + "a" * 40}),
         ):
             iam_client.reset_cache()
             try:
@@ -773,7 +773,7 @@ class TestSelfHostApiKey:
                 iam_client.reset_cache()
 
         headers = mock_client.post.call_args[1]["headers"]
-        assert headers["Authorization"] == "Bearer rzk_selfhost_key"
+        assert headers["Authorization"] == "Bearer " + "rzk_" + "a" * 40
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
@@ -807,9 +807,7 @@ class TestPerTierForwarding:
     @pytest.mark.anyio
     @pytest.mark.parametrize("tier", ["free", "pro"])
     @patch("rozkoduj_mcp.services.scanner.client")
-    async def test_forwards_user_tier(
-        self, mock_client: AsyncMock, tier: str
-    ) -> None:
+    async def test_forwards_user_tier(self, mock_client: AsyncMock, tier: str) -> None:
         from rozkoduj_mcp.auth import current_user_id, current_user_tier
         from rozkoduj_mcp.services.scanner import search_knowledge
 
@@ -825,3 +823,50 @@ class TestPerTierForwarding:
             current_user_id.reset(uid)
 
         assert mock_client.post.call_args[1]["headers"]["X-User-Tier"] == tier
+
+
+_VALID_KEY = "rzk_" + "a" * 40  # rzk_ + 40 hex = 44 chars
+
+
+class TestSelfHostCredential:
+    def test_valid_key_accepted(self) -> None:
+        from rozkoduj_mcp.services.scanner import _self_host_credential
+
+        with patch.dict("os.environ", {"ROZKODUJ_API_KEY": _VALID_KEY}):
+            assert _self_host_credential() == _VALID_KEY
+
+    def test_malformed_key_rejected(self) -> None:
+        from rozkoduj_mcp.services.scanner import _self_host_credential
+
+        with patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_short"}):
+            assert _self_host_credential() is None
+
+    def test_absent_key_returns_none(self) -> None:
+        from rozkoduj_mcp.services.scanner import _self_host_credential
+
+        with patch.dict("os.environ", {}, clear=True):
+            assert _self_host_credential() is None
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_malformed_key_sends_no_auth_header(
+        self, mock_client: AsyncMock
+    ) -> None:
+        from rozkoduj_mcp import iam_client
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+        with (
+            patch.object(iam_client, "_fetch", new=AsyncMock(return_value=None)),
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "not-a-valid-key"}),
+        ):
+            iam_client.reset_cache()
+            try:
+                await search_knowledge(query="x")
+            finally:
+                iam_client.reset_cache()
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert "Authorization" not in headers
