@@ -704,6 +704,15 @@ class TestJWTAuthContextMiddleware:
         assert ip == ""
 
 
+def test_issuer_pinned_to_canonical_www_origin():
+    """Production issuer must be the www origin the AS is actually served at
+    (apex 307-redirects, which OAuth/JWKS clients will not follow)."""
+    from rozkoduj_mcp.auth import ISSUER, JWKS_URI
+
+    assert ISSUER == "https://www.rozkoduj.com/api/auth"
+    assert JWKS_URI == "https://www.rozkoduj.com/api/auth/jwks"
+
+
 class TestNormalizeTier:
     """The MCP must not vouch a tier the data API won't recognise."""
 
