@@ -23,9 +23,8 @@ R = TypeVar("R")
 current_user_id: ContextVar[str] = ContextVar("current_user_id", default="")
 current_user_tier: ContextVar[str] = ContextVar("current_user_tier", default="")
 current_user_scopes: ContextVar[str] = ContextVar("current_user_scopes", default="")
-# End-client IP (last X-Forwarded-For hop) — forwarded to the data API as
-# X-Client-Ip so anonymous quota buckets key on the real client, not this
-# service's egress IP (which would be one shared bucket for all anon users).
+# End-client IP (last X-Forwarded-For hop), captured per request so outbound
+# calls can be attributed to the real caller rather than to this server.
 current_client_ip: ContextVar[str] = ContextVar("current_client_ip", default="")
 
 # Subscription tiers this server recognises. Used only to sanitize an inbound
@@ -196,12 +195,11 @@ class JWKSTokenVerifier(TokenVerifier):
 def _trusted_client_ip(forwarded_for: str) -> str:
     """End-client IP from X-Forwarded-For: rightmost entry, validated.
 
-    Cloud Run's frontend APPENDS the connecting client's IP and does not
-    strip client-supplied entries, so only the LAST hop is trustworthy —
-    the leftmost value is attacker-controlled (a spoofed header would let
-    an anonymous client rotate quota buckets at will). Assumes direct
-    Cloud Run ingress (no LB in front); returns "" when the value does
-    not parse as an IP, so garbage never becomes a quota bucket.
+    Cloud Run's frontend appends the connecting client's IP and does not
+    strip client-supplied entries, so only the last hop is trustworthy -
+    the leftmost value is attacker-controlled and could be spoofed. Assumes
+    direct Cloud Run ingress (no LB in front); returns "" when the value
+    does not parse as an IP.
     """
     candidate = forwarded_for.rsplit(",", 1)[-1].strip()
     try:

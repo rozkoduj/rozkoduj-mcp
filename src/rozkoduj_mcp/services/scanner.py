@@ -139,8 +139,8 @@ async def _outbound_headers() -> dict[str, str]:
         if scopes:
             headers["X-User-Scopes"] = scopes
 
-    # End-client IP for anonymous quota bucketing at the API (trusted there
-    # only because our service identity is allowlisted).
+    # Attach the captured end-client IP so anonymous callers are identified
+    # individually on outbound calls, not collapsed onto this server.
     client_ip = current_client_ip.get()
     if client_ip:
         headers["X-Client-Ip"] = client_ip
