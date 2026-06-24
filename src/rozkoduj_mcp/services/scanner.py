@@ -38,8 +38,7 @@ _TRANSPORT_RETRIES = 2
 
 logger = logging.getLogger(__name__)
 
-# A Rozkoduj API key is the literal minted by rozkoduj-api: ``rzk_`` + 40 hex
-# chars (``secrets.token_hex(20)``), 44 chars total.
+# A Rozkoduj API key is ``rzk_`` followed by 40 hex chars (44 chars total).
 _API_KEY_RE = re.compile(r"\Arzk_[0-9a-f]{40}\Z")
 
 
@@ -48,7 +47,7 @@ def _self_host_credential() -> str | None:
 
     Off-platform deployments authenticate to the data API with a
     Rozkoduj-issued ``rzk_`` key in ``ROZKODUJ_API_KEY``. A malformed value is
-    treated as absent rather than sent as a bearer that could only 401; the
+    treated as absent rather than sent as a bearer that would only be rejected; the
     malformed case is surfaced loudly once at startup (see
     :func:`log_self_host_status`), so the hot path stays quiet.
     """
