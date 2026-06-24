@@ -58,6 +58,26 @@ def _self_host_credential() -> str | None:
     return None
 
 
+def log_self_host_status() -> None:
+    """Log the outbound-auth posture once at startup, without the secret.
+
+    Outbound mode is environment-determined: on Cloud Run the IAM
+    service-identity token is used; off-platform a well-formed
+    ``ROZKODUJ_API_KEY`` is the fallback. Logs which is configured (prefix
+    only) so an operator can see why requests authenticate the way they do.
+    """
+    key = os.environ.get("ROZKODUJ_API_KEY")
+    if not key:
+        logger.info("outbound_auth: self-host key absent (IAM or anonymous)")
+        return
+    if _API_KEY_RE.match(key):
+        logger.info("outbound_auth: self-host key configured (prefix=%s)", key[:12])
+    else:
+        logger.warning(
+            "outbound_auth: self-host key malformed (expected rzk_ + 40 hex); ignoring"
+        )
+
+
 def setup_client(api_url: str, timeout: float = 20.0) -> httpx.AsyncClient:
     """Create the module-level httpx client. Called from each transport's lifespan."""
     global client, _request_semaphore

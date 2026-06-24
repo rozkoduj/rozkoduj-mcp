@@ -1,5 +1,6 @@
 """Tests for rozkoduj_mcp.services.scanner (API client)."""
 
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -870,3 +871,37 @@ class TestSelfHostCredential:
 
         headers = mock_client.post.call_args[1]["headers"]
         assert "Authorization" not in headers
+
+
+class TestLogSelfHostStatus:
+    def test_logs_absent(self, caplog: pytest.LogCaptureFixture) -> None:
+        from rozkoduj_mcp.services.scanner import log_self_host_status
+
+        with patch.dict("os.environ", {}, clear=True), caplog.at_level(logging.INFO):
+            log_self_host_status()
+        assert "absent" in caplog.text
+
+    def test_logs_configured_prefix_not_secret(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        from rozkoduj_mcp.services.scanner import log_self_host_status
+
+        key = "rzk_" + "b" * 40
+        with (
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": key}),
+            caplog.at_level(logging.INFO),
+        ):
+            log_self_host_status()
+        assert "configured" in caplog.text
+        assert key not in caplog.text  # secret never logged
+        assert key[:12] in caplog.text  # 12-char prefix is fine
+
+    def test_logs_malformed_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        from rozkoduj_mcp.services.scanner import log_self_host_status
+
+        with (
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_bad"}),
+            caplog.at_level(logging.WARNING),
+        ):
+            log_self_host_status()
+        assert "malformed" in caplog.text
