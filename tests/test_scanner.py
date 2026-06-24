@@ -799,3 +799,29 @@ class TestSelfHostApiKey:
 
         headers = mock_client.post.call_args[1]["headers"]
         assert headers["Authorization"] == "Bearer iam-token"
+
+
+class TestPerTierForwarding:
+    """The resolved tier is forwarded verbatim as X-User-Tier."""
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("tier", ["free", "pro"])
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_forwards_user_tier(
+        self, mock_client: AsyncMock, tier: str
+    ) -> None:
+        from rozkoduj_mcp.auth import current_user_id, current_user_tier
+        from rozkoduj_mcp.services.scanner import search_knowledge
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "q", "items": []})
+        )
+        uid = current_user_id.set("user-1")
+        tok = current_user_tier.set(tier)
+        try:
+            await search_knowledge(query="x")
+        finally:
+            current_user_tier.reset(tok)
+            current_user_id.reset(uid)
+
+        assert mock_client.post.call_args[1]["headers"]["X-User-Tier"] == tier
