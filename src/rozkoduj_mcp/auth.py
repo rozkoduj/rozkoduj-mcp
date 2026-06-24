@@ -53,7 +53,7 @@ _ACCEPTED_ALGS = ["EdDSA"]
 
 # Production OAuth wiring. One AS, one RS - so the URLs live in code as
 # constants rather than env vars. Changing the AS means a code change here.
-ISSUER = "https://rozkoduj.com/api/auth"
+ISSUER = "https://www.rozkoduj.com/api/auth"
 AUDIENCE = "https://mcp.rozkoduj.com/mcp"
 JWKS_URI = f"{ISSUER}/jwks"
 
