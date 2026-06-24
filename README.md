@@ -169,7 +169,7 @@ Same pattern works for any market question:
 
 | Tool | What it does |
 | ---- | ------------ |
-| `list_strategies` | Browse Rozkoduj's catalog of published trading strategies. Sort by Sharpe / Sortino / CAGR, filter by family. |
+| `list_strategies` | Browse Rozkoduj's catalog of published trading strategies. Sort by Rozkoduj Score or APY, filter by family. |
 | `strategy_details` | Drill into a single strategy by slug or `algorithm_uid` - full metrics, sparkline, params, data range. |
 | `search_articles` | Keyword + meaning search across the Rozkoduj blog. Returns `slug` + `locale` for citation. |
 | `search_knowledge` | Hybrid search across Rozkoduj's extended knowledge base. Sign in to unlock. |

@@ -15,7 +15,17 @@ def _mock_result() -> dict[str, Any]:
                 "algorithm_uid": "01JABC",
                 "slug": "ma-cross-ema",
                 "name": {"en": "MA Cross EMA"},
-                "best_run": {"sharpe": 2.4, "cagr": 0.45},
+                "best_run": {
+                    "cagr": 0.45,
+                    "max_drawdown": -0.18,
+                    "win_rate": 0.61,
+                    "num_trades": 142,
+                    "rozkoduj_score": 78.0,
+                    "rozkoduj_band": "strong",
+                    "score_provisional": False,
+                    "risk_character": "balanced",
+                    "character_score": 64.0,
+                },
             }
         ],
         "total": 1,
@@ -34,7 +44,7 @@ class TestListStrategies:
 
         mock_scanner.list_strategies.assert_called_once_with(
             status="active",
-            sort="sharpe_desc",
+            sort="score_desc",
             visibility="public",
             family=None,
             limit=20,
@@ -49,12 +59,12 @@ class TestListStrategies:
         mock_scanner.list_strategies = AsyncMock(return_value=_mock_result())
 
         await list_strategies(
-            status="all", sort="cagr_desc", family="ma_cross", limit=5, offset=10
+            status="all", sort="apy_desc", family="ma_cross", limit=5, offset=10
         )
 
         mock_scanner.list_strategies.assert_called_once_with(
             status="all",
-            sort="cagr_desc",
+            sort="apy_desc",
             visibility="public",
             family="ma_cross",
             limit=5,

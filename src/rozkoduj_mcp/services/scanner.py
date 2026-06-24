@@ -254,7 +254,7 @@ async def decode(symbol: str, query: str = "", lang: str = "en") -> dict[str, An
 async def list_strategies(
     *,
     status: str = "active",
-    sort: str = "sharpe_desc",
+    sort: str = "score_desc",
     visibility: str = "public",
     family: str | None = None,
     limit: int = 20,
