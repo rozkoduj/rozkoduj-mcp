@@ -1,6 +1,7 @@
 """Tests for rozkoduj_mcp.auth - JWKS-based JWT verification."""
 
 import base64
+import logging
 import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -21,6 +22,7 @@ from rozkoduj_mcp.auth import (
     current_user_scopes,
     current_user_tier,
     default_verifier,
+    normalize_tier,
     requires_scope,
 )
 
@@ -700,3 +702,25 @@ class TestJWTAuthContextMiddleware:
     async def test_client_ip_empty_without_forwarded_header(self) -> None:
         ip = await self._client_ip_seen_downstream([])
         assert ip == ""
+
+
+class TestNormalizeTier:
+    """The MCP must not vouch a tier the data API won't recognise."""
+
+    def test_known_tier_passes_through(self) -> None:
+        for tier in ("anon", "free", "pro", "max"):
+            assert normalize_tier(tier) == tier
+
+    def test_unknown_tier_degrades_to_anon_and_logs(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level(logging.WARNING):
+            assert normalize_tier("team") == "anon"
+        assert len(caplog.records) == 1
+        assert caplog.records[0].tier == "team"
+
+    def test_none_degrades_silently_to_anon(self) -> None:
+        assert normalize_tier(None) == "anon"
+
+    def test_empty_string_degrades_silently_to_anon(self) -> None:
+        assert normalize_tier("") == "anon"

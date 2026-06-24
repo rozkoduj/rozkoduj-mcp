@@ -28,6 +28,27 @@ current_user_scopes: ContextVar[str] = ContextVar("current_user_scopes", default
 # service's egress IP (which would be one shared bucket for all anon users).
 current_client_ip: ContextVar[str] = ContextVar("current_client_ip", default="")
 
+# Closed subscription-tier vocabulary, kept in sync with the data API. The MCP
+# enforces nothing on these (the data API meters); it must just not vouch a tier
+# the API won't recognise - an unknown claim degrades to anon before it is
+# forwarded as X-User-Tier.
+TIERS: frozenset[str] = frozenset({"anon", "free", "pro", "max"})
+
+
+def normalize_tier(raw: str | None) -> str:
+    """Return ``raw`` when it is a known tier, else ``anon`` (logged).
+
+    Guards the data API from cross-service version skew: a tier a newer issuer
+    mints before this service knows it must degrade to anon LOUDLY, never get
+    vouched verbatim. ``None`` / empty (the anonymous case) degrade quietly.
+    """
+    if raw is not None and raw in TIERS:
+        return raw
+    if raw:
+        logger.warning("unknown_tier_degraded_to_anon", extra={"tier": raw})
+    return "anon"
+
+
 # Single accepted signing algorithm. EdDSA / Ed25519 is the modern default
 # (RFC 8037): smaller keys, constant-time verify, no padding attacks.
 _ACCEPTED_ALGS = ["EdDSA"]
@@ -159,9 +180,12 @@ class JWKSTokenVerifier(TokenVerifier):
             int(expires_at_raw) if isinstance(expires_at_raw, (int, float)) else None
         )
 
-        # Missing claims stay empty - no defaults injected.
+        # Missing claims stay empty - no defaults injected. A present-but-
+        # unknown tier degrades to anon (normalize_tier) so we never vouch a
+        # tier the data API won't recognise.
+        tier_claim = payload.get("tier")
         current_user_id.set(str(payload.get("sub") or ""))
-        current_user_tier.set(str(payload.get("tier") or ""))
+        current_user_tier.set(normalize_tier(str(tier_claim)) if tier_claim else "")
         current_user_scopes.set(" ".join(scopes))
 
         return AccessToken(
