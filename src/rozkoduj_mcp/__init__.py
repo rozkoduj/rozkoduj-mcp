@@ -78,6 +78,7 @@ async def _oauth_protected_resource(request: Request) -> JSONResponse:
         {
             "resource": AUDIENCE,
             "authorization_servers": [ISSUER],
+            "scopes_supported": ["mcp:knowledge:read"],
             "bearer_methods_supported": ["header"],
         },
         headers={
