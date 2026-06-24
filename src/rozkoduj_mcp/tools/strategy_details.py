@@ -19,9 +19,11 @@ async def strategy_details(identifier: StrategyId) -> dict[str, Any]:
 
     `identifier` is either the URL slug (e.g. `ma-cross-ema`) or the
     `algorithm_uid` (ULID, e.g. `01J7...`). Returns a single strategy with
-    its i18n names/descriptions, tags, family/variant/version metadata and
-    the denormalized `best_run` blob (full metrics, sparkline, params, data
-    range).
+    its i18n names/descriptions, family/variant/version metadata and the
+    `best_run` blob: `rozkoduj_score`/`rozkoduj_band` (ranking axis),
+    `cagr` (APY, annualised return), `max_drawdown`, `win_rate`,
+    `num_trades`, the risk mode (`risk_character`, `character_score`),
+    plus `sparkline`, `params_public`, and `data_start`/`data_end`.
 
     Use this after `list_strategies` once a candidate is chosen, or when the
     user names a strategy directly. Returns 404 if not found.

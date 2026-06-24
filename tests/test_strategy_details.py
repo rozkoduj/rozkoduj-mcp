@@ -17,8 +17,21 @@ def _mock_result() -> dict[str, Any]:
         "family": "ma_cross",
         "variant": "ema",
         "version": "v1",
-        "tags": ["trend"],
-        "best_run": {"sharpe": 2.4, "cagr": 0.45, "max_drawdown": -0.18},
+        "best_run": {
+            "cagr": 0.45,
+            "max_drawdown": -0.18,
+            "win_rate": 0.61,
+            "num_trades": 142,
+            "rozkoduj_score": 78.0,
+            "rozkoduj_band": "strong",
+            "score_provisional": False,
+            "risk_character": "balanced",
+            "character_score": 64.0,
+            "sparkline": [1.0, 1.1, 1.05, 1.22],
+            "params_public": {"fast": 10, "slow": 30},
+            "data_start": "2018-01-01",
+            "data_end": "2026-04-01",
+        },
         "created_at": "2026-04-01T00:00:00+00:00",
         "updated_at": "2026-04-01T00:00:00+00:00",
     }
@@ -34,7 +47,9 @@ class TestStrategyDetails:
 
         mock_scanner.strategy_details.assert_called_once_with("ma-cross-ema")
         assert result["slug"] == "ma-cross-ema"
-        assert result["best_run"]["sharpe"] == 2.4
+        assert result["best_run"]["cagr"] == 0.45
+        assert result["best_run"]["rozkoduj_score"] == 78.0
+        assert result["best_run"]["risk_character"] == "balanced"
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.strategy_details.scanner")
