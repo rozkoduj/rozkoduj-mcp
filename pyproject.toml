@@ -22,7 +22,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "mcp>=1.27.1",
+    "mcp>=1.28.1",
     "httpx>=0.28.1",
     "pyjwt[crypto]>=2.13.0",
 ]

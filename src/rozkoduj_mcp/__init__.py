@@ -5,6 +5,7 @@ import os
 from collections.abc import AsyncIterator
 from importlib.metadata import version
 
+from mcp.types import LATEST_PROTOCOL_VERSION
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -52,7 +53,7 @@ async def _health(request: Request) -> PlainTextResponse:
 async def _well_known_mcp(request: Request) -> JSONResponse:
     return JSONResponse(
         {
-            "mcp_version": "2025-11-25",
+            "mcp_version": LATEST_PROTOCOL_VERSION,
             "endpoints": [
                 {
                     "url": AUDIENCE,
