@@ -1,0 +1,95 @@
+[project]
+name = "rozkoduj-mcp"
+version = "2026.7.11"
+description = "Market intelligence for your AI assistant - algo-trading strategies, analytics and specialized research knowledge."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.14"
+authors = [
+    { name = "Rozkoduj" },
+]
+keywords = [
+    "mcp", "mcp-server", "trading", "strategies", "backtesting",
+    "leaderboard", "knowledge-base",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = [
+    "mcp>=1.28.1",
+    "httpx>=0.28.1",
+    "pyjwt[crypto]>=2.13.0",
+]
+
+[project.scripts]
+rozkoduj-mcp = "rozkoduj_mcp:main"
+
+[project.urls]
+Homepage = "https://rozkoduj.com"
+Repository = "https://github.com/rozkoduj/rozkoduj-mcp"
+Issues = "https://github.com/rozkoduj/rozkoduj-mcp/issues"
+Changelog = "https://github.com/rozkoduj/rozkoduj-mcp/releases"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "anyio>=4.13.0",
+    "mypy>=2.1.0",
+    "ruff>=0.15.13",
+    "pre-commit>=4.6.0",
+    "coverage>=7.14.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF", "PTH", "PERF",
+    "S", "T20", "C4", "A", "ASYNC", "LOG", "G",
+]
+ignore = ["E501", "S101", "S104"]
+
+[tool.mypy]
+strict = true
+python_version = "3.14"
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+# Untyped JSON boundary: scanner.py wraps the data API and intentionally
+# returns Any from the _post/_get helpers, then re-types at the public
+# function signatures. Silencing one rule for one module beats 11 inline
+# `# type: ignore` comments.
+[[tool.mypy.overrides]]
+module = "rozkoduj_mcp.services.scanner"
+disable_error_code = ["no-any-return"]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "-q", "--strict-markers", "--import-mode=importlib"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+xfail_strict = true
+# Fail the suite on any warning so a dependency deprecation surfaces in CI
+# (which auto-deploys) instead of in production. The one scoped ignore is
+# starlette's TestClient nudging toward its httpx2 successor - benign and
+# test-only; we deliberately do not pull a second HTTP stack into dev just to
+# silence it (runtime is pinned to httpx<1 via the mcp SDK). The narrow message
+# match means any OTHER deprecation still fails the build.
+filterwarnings = [
+    "error",
+    "ignore:Using `httpx` with `starlette.testclient`:starlette.exceptions.StarletteDeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["rozkoduj_mcp"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if __name__"]
