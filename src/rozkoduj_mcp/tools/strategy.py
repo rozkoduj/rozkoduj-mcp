@@ -20,8 +20,9 @@ async def strategy(identifier: StrategyId) -> dict[str, Any]:
     `identifier` is either the URL slug (e.g. `ma-cross-ema`) or the
     `algorithm_uid` (ULID, e.g. `01J7...`). Returns i18n names/descriptions,
     family/variant/version metadata and the `best_run` backtest summary:
-    `rozkoduj_score`/`rozkoduj_band` (ranking axis), `cagr` (APY, annualised
-    return), `max_drawdown`, `win_rate`, `num_trades`, the risk mode
+    `rozkoduj_score`/`rozkoduj_band` (ranking axis), `cagr` (APY in the
+    instrument's local currency), `cagr_usd` (APY in USD - the cross-market
+    canon), `max_drawdown`, `win_rate`, `num_trades`, the risk mode
     (`risk_character`, `character_score`), plus `sparkline`, `params_public`,
     and `data_start`/`data_end`.
 
