@@ -34,9 +34,17 @@ _DEFAULT_AUDIENCE: Final[str] = os.environ.get(
     "ROZKODUJ_API_AUDIENCE", "https://api.rozkoduj.com"
 )
 
-_cached_token: str | None = None
-_cached_at: float = 0.0
+# Tokens carry the audience in their ``aud`` claim, so the cache is keyed
+# by audience - a second audience must never be served another's token.
+_cache: dict[str, tuple[str, float]] = {}
 _lock = asyncio.Lock()
+
+
+def _cached(audience: str, now: float) -> str | None:
+    entry = _cache.get(audience)
+    if entry and (now - entry[1]) < _CACHE_TTL_SECONDS:
+        return entry[0]
+    return None
 
 
 async def get_id_token(audience: str = _DEFAULT_AUDIENCE) -> str | None:
@@ -45,22 +53,20 @@ async def get_id_token(audience: str = _DEFAULT_AUDIENCE) -> str | None:
     Returns ``None`` when the metadata server is unreachable (local dev,
     tests, anything outside GCE / Cloud Run).
     """
-    global _cached_token, _cached_at
-
-    now = time.monotonic()
-    if _cached_token and (now - _cached_at) < _CACHE_TTL_SECONDS:
-        return _cached_token
+    token = _cached(audience, time.monotonic())
+    if token is not None:
+        return token
 
     async with _lock:
         # Re-check after acquiring the lock so a burst of callers doesn't
         # stampede the metadata server.
         now = time.monotonic()
-        if _cached_token and (now - _cached_at) < _CACHE_TTL_SECONDS:
-            return _cached_token
+        token = _cached(audience, now)
+        if token is not None:
+            return token
         token = await _fetch(audience)
         if token is not None:
-            _cached_token = token
-            _cached_at = now
+            _cache[audience] = (token, now)
         return token
 
 
@@ -80,7 +86,5 @@ async def _fetch(audience: str) -> str | None:
 
 
 def reset_cache() -> None:
-    """Clear the cached token. Internal helper, not part of the public API."""
-    global _cached_token, _cached_at
-    _cached_token = None
-    _cached_at = 0.0
+    """Clear all cached tokens. Internal helper, not part of the public API."""
+    _cache.clear()

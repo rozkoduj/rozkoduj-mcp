@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 import jwt
 from mcp.server.auth.provider import AccessToken, TokenVerifier
+from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,16 @@ _ACCEPTED_ALGS = ["EdDSA"]
 ISSUER = "https://www.rozkoduj.com/api/auth"
 AUDIENCE = "https://mcp.rozkoduj.com/mcp"
 JWKS_URI = f"{ISSUER}/jwks"
+# RFC 9728 path-insertion form for the /mcp resource.
+RESOURCE_METADATA_URL = (
+    "https://mcp.rozkoduj.com/.well-known/oauth-protected-resource/mcp"
+)
+
+# Paths that must stay reachable without (or with a broken) bearer: health
+# probes and the discovery endpoints a client needs to bootstrap OAuth in
+# the first place (RFC 9728 metadata cannot sit behind the very challenge
+# that points at it).
+_CHALLENGE_EXEMPT_PREFIXES = ("/health", "/robots.txt", "/.well-known/")
 
 
 class JWKSTokenVerifier(TokenVerifier):
@@ -204,6 +215,24 @@ def _trusted_client_ip(forwarded_for: str) -> str:
     return candidate
 
 
+async def _send_unauthorized(scope: Scope, receive: Receive, send: Send) -> None:
+    """Answer a rejected bearer with a 401 + WWW-Authenticate challenge.
+
+    RFC 6750 error code plus the RFC 9728 ``resource_metadata`` pointer, so
+    a spec-following MCP client can discover the authorization server and
+    re-authenticate.
+    """
+    challenge = (
+        f'Bearer error="invalid_token", resource_metadata="{RESOURCE_METADATA_URL}"'
+    )
+    response = PlainTextResponse(
+        "invalid_token",
+        status_code=401,
+        headers={"WWW-Authenticate": challenge},
+    )
+    await response(scope, receive, send)
+
+
 class JWTAuthContextMiddleware:
     """ASGI middleware that tags a request with verified JWT identity."""
 
@@ -236,8 +265,18 @@ class JWTAuthContextMiddleware:
         ip_token = current_client_ip.set(client_ip)
         try:
             if auth_header.lower().startswith("bearer "):
-                # verify_token sets the ContextVars; return value unused.
-                await self._verifier.verify_token(auth_header[7:])
+                # verify_token sets the ContextVars on success.
+                verified = await self._verifier.verify_token(auth_header[7:])
+                # No bearer at all stays anonymous (the anon tier is served
+                # without auth), but a presented-and-rejected bearer gets a
+                # 401 challenge pointing at the RFC 9728 resource metadata -
+                # that is what tells an MCP client to refresh its token or
+                # start OAuth discovery instead of silently running as anon.
+                if verified is None and not scope["path"].startswith(
+                    _CHALLENGE_EXEMPT_PREFIXES
+                ):
+                    await _send_unauthorized(scope, receive, send)
+                    return
 
             await self._app(scope, receive, send)
         finally:

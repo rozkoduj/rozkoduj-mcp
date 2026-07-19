@@ -27,8 +27,10 @@ class TestGetIdToken:
     @pytest.mark.anyio
     async def test_returns_cached_token_when_fresh(self) -> None:
         iam_client.reset_cache()
-        iam_client._cached_token = "warm-cache-token"  # noqa: S105
-        iam_client._cached_at = time.monotonic()
+        iam_client._cache[iam_client._DEFAULT_AUDIENCE] = (
+            "warm-cache-token",
+            time.monotonic(),
+        )
         try:
             # _fetch must not be called; it's already AsyncMock(return_value=None)
             # via the autouse fixture, so any call would return None and bust this.
@@ -39,9 +41,11 @@ class TestGetIdToken:
     @pytest.mark.anyio
     async def test_refreshes_when_cache_expired(self) -> None:
         iam_client.reset_cache()
-        iam_client._cached_token = "stale-token"  # noqa: S105
         # Force the cache to look ancient.
-        iam_client._cached_at = time.monotonic() - 999999.0
+        iam_client._cache[iam_client._DEFAULT_AUDIENCE] = (
+            "stale-token",
+            time.monotonic() - 999999.0,
+        )
         try:
             with patch.object(
                 iam_client,
@@ -58,7 +62,7 @@ class TestGetIdToken:
         # Autouse fixture already patches _fetch to return None.
         assert await iam_client.get_id_token() is None
         # Cache stays empty so the next call retries instead of pinning None.
-        assert iam_client._cached_token is None
+        assert iam_client._cache == {}
 
     @pytest.mark.anyio
     async def test_double_checked_locking_reuses_first_fetch(self) -> None:
@@ -90,9 +94,31 @@ class TestGetIdToken:
                 fetch_can_finish.set()
                 r1, r2 = await asyncio.gather(task_first, task_second)
             assert r1 == "fetched-once"
-            # task_second hit the in-lock recheck (line 68) and reused the cache.
+            # task_second hit the in-lock recheck and reused the cache.
             assert r2 == "fetched-once"
             assert fetch_count == 1
+        finally:
+            iam_client.reset_cache()
+
+    @pytest.mark.anyio
+    async def test_cache_is_keyed_by_audience(self) -> None:
+        """A second audience must mint its own token, never reuse another
+        audience's cached one (the ``aud`` claim would be wrong)."""
+        iam_client.reset_cache()
+        try:
+            with patch.object(
+                iam_client,
+                "_fetch",
+                new=AsyncMock(side_effect=lambda aud: f"token-for-{aud}"),
+            ) as fetch:
+                first = await iam_client.get_id_token("https://api.one")
+                second = await iam_client.get_id_token("https://api.two")
+                # Both audiences now served from cache - no further fetches.
+                assert await iam_client.get_id_token("https://api.one") == first
+                assert await iam_client.get_id_token("https://api.two") == second
+            assert first == "token-for-https://api.one"
+            assert second == "token-for-https://api.two"
+            assert fetch.await_count == 2
         finally:
             iam_client.reset_cache()
 
@@ -163,8 +189,6 @@ class TestFetch:
 
 class TestResetCache:
     def test_clears_cached_state(self) -> None:
-        iam_client._cached_token = "token"  # noqa: S105
-        iam_client._cached_at = time.monotonic()
+        iam_client._cache["https://api.example"] = ("token", time.monotonic())
         iam_client.reset_cache()
-        assert iam_client._cached_token is None
-        assert iam_client._cached_at == 0.0
+        assert iam_client._cache == {}

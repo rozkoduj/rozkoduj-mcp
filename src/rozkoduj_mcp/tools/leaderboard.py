@@ -6,13 +6,8 @@ from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Symbol
 
-# Ticker charset: dots, carets, dashes and equals cover BRK.B-style symbols
-# plus index/FX notations. No wildcards, no separators.
-Symbol = Annotated[
-    str, Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9.^=-]+$")
-]
 # Family slugs mirror the API bound exactly - anything looser 422s upstream.
 FamilySlug = Annotated[str, Field(max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
 
@@ -45,8 +40,8 @@ async def leaderboard(
     metrics: `symbol` (the instrument the metrics were earned on), `cagr`
     (APY in the instrument's local currency), `cagr_usd` (APY in USD - use
     this whenever comparing across markets), `max_drawdown`, `win_rate`,
-    `num_trades`, `rozkoduj_score`, `rozkoduj_band`, and the risk mode
-    (`risk_character`, `character_score`).
+    `num_trades`, `rozkoduj_score`, `rozkoduj_band`, the risk mode
+    (`risk_character`, `character_score`), and a `sparkline`.
 
     For one strategy's full dossier use `strategy`.
     """
