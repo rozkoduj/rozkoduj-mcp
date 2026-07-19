@@ -6,11 +6,8 @@ from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
-from rozkoduj_mcp.tools import TOOL_ANNOTATIONS
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Symbol
 
-Symbol = Annotated[
-    str, Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9.^=-]+$")
-]
 # Catalog facet values are lowercase slugs (equity, crypto, live, ...).
 Facet = Annotated[str, Field(min_length=1, max_length=32, pattern=r"^[a-z_]+$")]
 

@@ -10,6 +10,11 @@ from pydantic import Field
 # tool body runs - so the calling LLM sees the bound and self-limits.
 SearchQuery = Annotated[str, Field(min_length=2, max_length=300)]
 
+Symbol = Annotated[
+    str,
+    Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9^][A-Za-z0-9.^=-]*$"),
+]
+
 # All rozkoduj tools are read-only queries against Rozkoduj's own bounded
 # corpus (strategy catalog, research, knowledge base) - a closed domain, not the
 # open web or third-party services, so openWorldHint is False. idempotentHint

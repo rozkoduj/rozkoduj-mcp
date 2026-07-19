@@ -17,7 +17,7 @@ StrategyId = Annotated[str, Field(max_length=100, pattern=r"^[A-Za-z0-9_-]+$")]
 async def strategy(identifier: StrategyId) -> dict[str, Any]:
     """One strategy's full dossier, including its backtest summary.
 
-    `identifier` is either the URL slug (e.g. `ma-cross-ema`) or the
+    `identifier` is either the URL slug (e.g. `ma-crossover`) or the
     `algorithm_uid` (ULID, e.g. `01J7...`). Returns i18n names/descriptions,
     family/variant/version metadata and the `best_run` backtest summary:
     `rozkoduj_score`/`rozkoduj_band` (ranking axis), `cagr` (APY in the

@@ -66,7 +66,9 @@ class TestToolParameterBounds:
             variant = _string_variant(schemas[tool]["properties"]["symbol"])
             assert variant["minLength"] == 1, tool
             assert variant["maxLength"] == 20, tool
-            assert variant["pattern"] == "^[A-Za-z0-9.^=-]+$", tool
+            # First char alphanumeric/caret: a symbol can never be a pure
+            # dot sequence, so it can never collapse the upstream path.
+            assert variant["pattern"] == "^[A-Za-z0-9^][A-Za-z0-9.^=-]*$", tool
 
     @pytest.mark.anyio
     async def test_instrument_facets_are_slug_safe(self) -> None:
@@ -162,3 +164,13 @@ class TestBoundsEnforcedEndToEnd:
 
         with pytest.raises(ToolError, match="match pattern"):
             await mcp.call_tool("instrument", {"symbol": "../admin"})
+
+    @pytest.mark.anyio
+    async def test_dot_segment_symbols_rejected(self) -> None:
+        # "." and ".." are RFC 3986 dot-segments: httpx would collapse
+        # /instruments/.. to the API root instead of a dossier path.
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        for symbol in (".", ".."):
+            with pytest.raises(ToolError, match="match pattern"):
+                await mcp.call_tool("instrument", {"symbol": symbol})
