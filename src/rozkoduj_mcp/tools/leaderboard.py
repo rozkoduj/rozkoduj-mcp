@@ -34,14 +34,17 @@ async def leaderboard(
     finds `btc-usd`, a venue-suffixed symbol like `ry-ca` pins one listing).
 
     Sorting: `score_desc` (default) ranks by the Rozkoduj Score - the
-    headline leaderboard axis; `apy_desc` ranks by annualised return (APY,
-    the `cagr` field); `recent` is newest first.
+    headline leaderboard axis; `apy_desc` ranks by annualised return in USD
+    (`cagr_usd` - the cross-market canon, immune to weak-currency inflation;
+    local `cagr` is the fallback); `recent` is newest first.
 
     Each item carries `algorithm_uid` (ULID), `slug`, i18n
     `name`/`description`, `family`/`variant`, and `best_run` with hot
     metrics: `symbol` (the instrument the metrics were earned on), `cagr`
-    (APY), `max_drawdown`, `win_rate`, `num_trades`, `rozkoduj_score`,
-    `rozkoduj_band`, and the risk mode (`unit_risk_band`, `unit_risk_score`).
+    (APY in the instrument's local currency), `cagr_usd` (APY in USD - use
+    this whenever comparing across markets), `max_drawdown`, `win_rate`,
+    `num_trades`, `rozkoduj_score`, `rozkoduj_band`, and the risk mode
+    (`unit_risk_band`, `unit_risk_score`).
 
     For one strategy's full dossier use `strategy`.
     """

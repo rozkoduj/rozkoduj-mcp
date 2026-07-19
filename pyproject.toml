@@ -1,6 +1,6 @@
 [project]
 name = "rozkoduj-mcp"
-version = "2026.7.11"
+version = "2026.7.19"
 description = "Market intelligence for your AI assistant - algo-trading strategies, analytics and specialized research knowledge."
 readme = "README.md"
 license = "MIT"
