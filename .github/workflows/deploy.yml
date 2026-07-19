@@ -10,6 +10,9 @@ concurrency:
   group: deploy-cloudrun
   cancel-in-progress: false
 
+# Default-deny at the workflow level; the job grants what it needs.
+permissions: {}
+
 jobs:
   deploy:
     # Deploy only for a real push to main. A fork PR's CI run carries

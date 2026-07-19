@@ -6,10 +6,35 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from rozkoduj_mcp.services import scanner
 
 _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
+
+# Host/Origin validation on the streamable-http transport (MCP spec
+# 2025-11-25: invalid Origin MUST be rejected; the SDK answers 403 for a
+# bad Origin and 421 for a bad Host). Non-browser MCP clients send no
+# Origin header and pass untouched; browsers are additionally fenced by
+# the absence of CORS headers on the MCP endpoint itself.
+_TRANSPORT_SECURITY = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=[
+        "mcp.rozkoduj.com",
+        "rozkoduj-mcp-980145962964.europe-west1.run.app",
+        "localhost",
+        "localhost:*",
+        "127.0.0.1",
+        "127.0.0.1:*",
+    ],
+    allowed_origins=[
+        "https://mcp.rozkoduj.com",
+        "http://localhost",
+        "http://localhost:*",
+        "http://127.0.0.1",
+        "http://127.0.0.1:*",
+    ],
+)
 
 
 @asynccontextmanager
@@ -41,6 +66,7 @@ _mcp_kwargs: dict[str, Any] = {
     "stateless_http": True,
     "json_response": True,
     "lifespan": app_lifespan,
+    "transport_security": _TRANSPORT_SECURITY,
 }
 
 mcp = FastMCP("rozkoduj", **_mcp_kwargs)

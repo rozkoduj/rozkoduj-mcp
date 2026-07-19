@@ -513,7 +513,7 @@ class TestJWTAuthContextMiddleware:
         from rozkoduj_mcp.auth import JWTAuthContextMiddleware
 
         verifier = MagicMock()
-        verifier.verify_token = AsyncMock(return_value=None)
+        verifier.verify_token = AsyncMock(return_value=MagicMock())
         downstream = AsyncMock()
         middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
 
@@ -523,6 +523,50 @@ class TestJWTAuthContextMiddleware:
         await middleware(scope, AsyncMock(), AsyncMock())
 
         verifier.verify_token.assert_awaited_once_with("tok-123")
+        downstream.assert_awaited_once()
+
+    @pytest.mark.anyio
+    async def test_rejected_bearer_short_circuits_with_401(self) -> None:
+        """A presented-and-rejected bearer must never silently degrade to
+        anon - it gets the RFC 9728 challenge and the app is not called."""
+        from rozkoduj_mcp.auth import RESOURCE_METADATA_URL, JWTAuthContextMiddleware
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock(return_value=None)
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        scope = self._http_scope(headers=[(b"authorization", b"Bearer bad")])
+        send = AsyncMock()
+        await middleware(scope, AsyncMock(), send)
+
+        downstream.assert_not_awaited()
+        start = next(
+            call.args[0]
+            for call in send.await_args_list
+            if call.args[0]["type"] == "http.response.start"
+        )
+        assert start["status"] == 401
+        headers = dict(start["headers"])
+        challenge = headers[b"www-authenticate"].decode()
+        assert 'error="invalid_token"' in challenge
+        assert RESOURCE_METADATA_URL in challenge
+
+    @pytest.mark.anyio
+    async def test_rejected_bearer_on_exempt_path_passes_through(self) -> None:
+        """Discovery/health paths must stay reachable with a broken bearer -
+        RFC 9728 metadata cannot sit behind the challenge that points at it."""
+        from rozkoduj_mcp.auth import JWTAuthContextMiddleware
+
+        verifier = MagicMock()
+        verifier.verify_token = AsyncMock(return_value=None)
+        downstream = AsyncMock()
+        middleware = JWTAuthContextMiddleware(downstream, verifier=verifier)
+
+        scope = self._http_scope(headers=[(b"authorization", b"Bearer bad")])
+        scope["path"] = "/.well-known/oauth-protected-resource/mcp"
+        await middleware(scope, AsyncMock(), AsyncMock())
+
         downstream.assert_awaited_once()
 
     @pytest.mark.anyio
@@ -562,10 +606,11 @@ class TestJWTAuthContextMiddleware:
         finishes so it can never bleed into a later reused context."""
         from rozkoduj_mcp.auth import JWTAuthContextMiddleware
 
-        async def _bind(_token: str) -> None:
+        async def _bind(_token: str) -> Any:
             current_user_id.set("user-1")
             current_user_tier.set("pro")
             current_user_scopes.set("mcp:read")
+            return MagicMock()
 
         verifier = MagicMock()
         verifier.verify_token = AsyncMock(side_effect=_bind)
