@@ -151,8 +151,10 @@ not a data dump.
 One tool per pillar. All four are read-only.
 
 - **leaderboard** - the strategy leaderboard: published, backtested
-  strategies, ranked. Sort by score or APY; filter by family or by instrument
-  symbol ("what works best on AAPL?").
+  strategies, ranked. Sort by score or APY - `apy_desc` ranks by `cagr_usd`
+  (annualised return in USD, the cross-market canon; local `cagr` is the
+  fallback); filter by family or by instrument symbol ("what works best on
+  AAPL?").
 - **strategy** - one strategy's full dossier: metrics, risk mode, parameters,
   and the backtest summary.
 - **instrument** - the catalog of covered markets, or one instrument's
