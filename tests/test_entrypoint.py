@@ -7,6 +7,7 @@ import uvicorn
 from starlette.applications import Starlette
 
 import rozkoduj_mcp
+import rozkoduj_mcp.server
 
 
 class TestMainDispatch:
@@ -14,7 +15,9 @@ class TestMainDispatch:
         monkeypatch.delenv("MCP_TRANSPORT", raising=False)
         transports: list[str] = []
         monkeypatch.setattr(
-            rozkoduj_mcp.mcp, "run", lambda transport: transports.append(transport)
+            rozkoduj_mcp.server.mcp,
+            "run",
+            lambda transport: transports.append(transport),
         )
 
         rozkoduj_mcp.main()

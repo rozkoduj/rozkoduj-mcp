@@ -14,4 +14,7 @@ class TestAppLifespan:
         async with app_lifespan(mcp):
             assert scanner.client is not None
 
-        assert scanner.client is None
+        # mypy narrows the module global to non-None above and cannot model the
+        # lifespan resetting it on exit, so it reads this line as unreachable.
+        # The assertion is the point of the test: teardown must clear the client.
+        assert scanner.client is None  # type: ignore[unreachable]

@@ -59,6 +59,8 @@ ignore = ["E501", "S101", "S104"]
 
 [tool.mypy]
 strict = true
+# Tracks the requires-python floor above - type-check against the oldest
+# interpreter the package claims to support, never a newer one.
 python_version = "3.14"
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]

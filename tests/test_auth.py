@@ -358,7 +358,9 @@ class TestTokenRejectionLogging:
 
         rejected = [r for r in caplog.records if r.getMessage() == "token_rejected"]
         assert len(rejected) == 1
-        assert "ExpiredSignature" in rejected[0].reason
+        # `reason` is injected via logging `extra=`, so it is not on LogRecord's
+        # static surface - getattr keeps this readable without a type: ignore.
+        assert "ExpiredSignature" in getattr(rejected[0], "reason")  # noqa: B009
 
     @pytest.mark.anyio
     async def test_logs_when_no_signing_key_matches(
@@ -642,7 +644,7 @@ class TestJWTAuthContextMiddleware:
     @pytest.mark.anyio
     async def test_client_ip_is_rightmost_forwarded_hop(self) -> None:
         """Cloud Run appends the real client IP last and never strips
-        client-supplied entries — the leftmost hop is attacker-controlled."""
+        client-supplied entries - the leftmost hop is attacker-controlled."""
         ip = await self._client_ip_seen_downstream(
             [(b"x-forwarded-for", b"6.6.6.6, 203.0.113.7")]
         )
@@ -671,7 +673,7 @@ class TestJWTAuthContextMiddleware:
         assert ip == ""
 
 
-def test_issuer_pinned_to_canonical_www_origin():
+def test_issuer_pinned_to_canonical_www_origin() -> None:
     """Production issuer must be the www origin the AS is actually served at
     (apex 307-redirects, which OAuth/JWKS clients will not follow)."""
     from rozkoduj_mcp.auth import ISSUER, JWKS_URI
@@ -693,7 +695,8 @@ class TestNormalizeTier:
         with caplog.at_level(logging.WARNING):
             assert normalize_tier("team") == "anon"
         assert len(caplog.records) == 1
-        assert caplog.records[0].tier == "team"
+        # Injected via logging `extra=` - see the note in TestTokenRejectionLogging.
+        assert getattr(caplog.records[0], "tier") == "team"  # noqa: B009
 
     def test_none_degrades_silently_to_anon(self) -> None:
         assert normalize_tier(None) == "anon"

@@ -4,7 +4,6 @@ from collections.abc import Iterator
 from typing import Any, ClassVar
 
 import pytest
-from mcp.types import LATEST_PROTOCOL_VERSION
 from starlette.testclient import TestClient
 
 from rozkoduj_mcp import build_app
@@ -29,22 +28,6 @@ class TestProtectedResourceMetadata:
         assert body["authorization_servers"] == [ISSUER]
         assert body["scopes_supported"] == ["mcp:knowledge:read"]
         assert "header" in body["bearer_methods_supported"]
-
-
-class TestServerManifest:
-    def test_advertises_endpoint_transport_and_auth(
-        self, app_client: TestClient
-    ) -> None:
-        resp = app_client.get("/.well-known/mcp.json")
-        assert resp.status_code == 200
-        body: dict[str, Any] = resp.json()
-        assert body["mcp_version"] == LATEST_PROTOCOL_VERSION
-        endpoint = body["endpoints"][0]
-        assert endpoint["url"] == AUDIENCE
-        assert endpoint["transport"] == "streamable-http"
-        assert endpoint["auth"]["authorization_server"] == ISSUER
-        assert set(endpoint["capabilities"]) == {"tools"}
-        assert resp.headers["cache-control"] == "public, max-age=3600"
 
 
 class TestServiceRoutes:

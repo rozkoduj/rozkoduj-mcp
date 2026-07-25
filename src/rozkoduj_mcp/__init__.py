@@ -5,7 +5,6 @@ import os
 from collections.abc import AsyncIterator
 from importlib.metadata import version
 
-from mcp.types import LATEST_PROTOCOL_VERSION
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -46,36 +45,11 @@ async def _health(request: Request) -> PlainTextResponse:
     return PlainTextResponse("ok")
 
 
-# Forward-looking server discovery manifest, inspired by the draft .well-known
-# MCP discovery proposals (SEP-1960 and related SEPs). These are drafts, not
-# part of the ratified MCP spec, and their path and schema may still change
-# (SEP-1960 itself proposes /.well-known/mcp, without the .json), so no MCP
-# client is guaranteed to consume this yet. The load-bearing, spec-backed
-# discovery path is the RFC 9728 oauth-protected-resource endpoint below.
-async def _well_known_mcp(request: Request) -> JSONResponse:
-    return JSONResponse(
-        {
-            "mcp_version": LATEST_PROTOCOL_VERSION,
-            "endpoints": [
-                {
-                    "url": AUDIENCE,
-                    "transport": "streamable-http",
-                    "capabilities": ["tools"],
-                    "auth": {
-                        "type": "oauth2",
-                        "authorization_server": ISSUER,
-                    },
-                }
-            ],
-        },
-        headers={
-            "Cache-Control": "public, max-age=3600",
-            "Access-Control-Allow-Origin": "*",
-        },
-    )
-
-
-# RFC 9728 protected-resource metadata.
+# RFC 9728 protected-resource metadata. This is the one spec-backed discovery
+# path and the only one a client is guaranteed to consume: the draft .well-known
+# manifest proposals (SEP-1649 / SEP-1960) remain unmerged, and the 2026-07-28
+# revision went a different way entirely - server discovery there is a
+# `server/discover` RPC, not a well-known document.
 async def _oauth_protected_resource(request: Request) -> JSONResponse:
     return JSONResponse(
         {
@@ -115,7 +89,6 @@ def build_app() -> Starlette:
         routes=[
             Route("/robots.txt", _robots_txt),
             Route("/health", _health),
-            Route("/.well-known/mcp.json", _well_known_mcp),
             Route(
                 "/.well-known/oauth-protected-resource/mcp",
                 _oauth_protected_resource,

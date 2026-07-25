@@ -21,3 +21,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # SHA-frozen hook revs - same reason as the actions above, and the hooks run
+  # the linters, so a stale rev means local checks drift from CI.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      hooks:
+        patterns: ["*"]
