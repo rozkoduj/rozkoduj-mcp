@@ -58,6 +58,27 @@ class TestAnonymousPassThrough:
 class TestTransportSecurity:
     """Host/Origin validation on the MCP transport (spec 2025-11-25)."""
 
+    def test_production_host_accepted(self, app_client: TestClient) -> None:
+        # The rejection tests below pass just as happily against a
+        # localhost-only allowlist, which is exactly what the transport falls
+        # back to when the app is built without explicit settings. Only a
+        # positive assertion on the real deployed host tells the two apart -
+        # otherwise that misconfiguration ships green and 421s every request
+        # in production.
+        resp = app_client.post(
+            "/mcp",
+            json={"jsonrpc": "2.0", "method": "tools/list", "id": 1},
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Host": "mcp.rozkoduj.com",
+            },
+        )
+        assert resp.status_code == 200
+        # A plain JSON body (not an SSE stream) proves the response-mode flag
+        # survived the move out of the constructor as well.
+        assert resp.headers["content-type"].startswith("application/json")
+        assert resp.json()["result"]["tools"]
+
     def test_unknown_host_rejected(self, app_client: TestClient) -> None:
         resp = app_client.post(
             "/mcp",

@@ -13,13 +13,13 @@ import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 
 from rozkoduj_mcp import iam_client
 
 # Captured before the package-level autouse fixture replaces _fetch on
-# the module, so the original httpx call remains reachable in this file.
+# the module, so the original httpx2 call remains reachable in this file.
 _REAL_FETCH = iam_client._fetch
 
 
@@ -124,7 +124,7 @@ class TestGetIdToken:
 
 
 class TestFetch:
-    """Exercise the real metadata-server call via httpx mocks."""
+    """Exercise the real metadata-server call via httpx2 mocks."""
 
     @pytest.mark.anyio
     async def test_returns_token_on_success(self) -> None:
@@ -136,7 +136,7 @@ class TestFetch:
         client.__aexit__.return_value = False
         client.get = AsyncMock(return_value=resp)
 
-        with patch("rozkoduj_mcp.iam_client.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.iam_client.httpx2.AsyncClient", return_value=client):
             token = await _REAL_FETCH("https://api.example")
 
         assert token == "id-token-from-metadata"  # noqa: S105
@@ -154,9 +154,9 @@ class TestFetch:
         client = AsyncMock()
         client.__aenter__.return_value = client
         client.__aexit__.return_value = False
-        client.get = AsyncMock(side_effect=httpx.ConnectError("no metadata server"))
+        client.get = AsyncMock(side_effect=httpx2.ConnectError("no metadata server"))
 
-        with patch("rozkoduj_mcp.iam_client.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.iam_client.httpx2.AsyncClient", return_value=client):
             assert await _REAL_FETCH("https://api.example") is None
 
     @pytest.mark.anyio
@@ -169,21 +169,21 @@ class TestFetch:
         client.__aexit__.return_value = False
         client.get = AsyncMock(return_value=resp)
 
-        with patch("rozkoduj_mcp.iam_client.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.iam_client.httpx2.AsyncClient", return_value=client):
             assert await _REAL_FETCH("https://api.example") is None
 
     @pytest.mark.anyio
     async def test_returns_none_on_http_error(self) -> None:
         resp = MagicMock()
         resp.text = "should not be read"
-        err = httpx.HTTPStatusError("500", request=MagicMock(), response=resp)
+        err = httpx2.HTTPStatusError("500", request=MagicMock(), response=resp)
         resp.raise_for_status = MagicMock(side_effect=err)
         client = AsyncMock()
         client.__aenter__.return_value = client
         client.__aexit__.return_value = False
         client.get = AsyncMock(return_value=resp)
 
-        with patch("rozkoduj_mcp.iam_client.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.iam_client.httpx2.AsyncClient", return_value=client):
             assert await _REAL_FETCH("https://api.example") is None
 
 

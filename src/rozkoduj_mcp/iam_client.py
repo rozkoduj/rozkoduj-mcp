@@ -12,7 +12,7 @@ import os
 import time
 from typing import Final
 
-import httpx
+import httpx2
 
 logger = logging.getLogger(__name__)
 
@@ -70,14 +70,14 @@ async def get_id_token(audience: str = _DEFAULT_AUDIENCE) -> str | None:
 
 async def _fetch(audience: str) -> str | None:
     try:
-        async with httpx.AsyncClient(timeout=_FETCH_TIMEOUT_SECONDS) as client:
+        async with httpx2.AsyncClient(timeout=_FETCH_TIMEOUT_SECONDS) as client:
             resp = await client.get(
                 _METADATA_URL,
                 params={"audience": audience},
                 headers=_METADATA_HEADERS,
             )
             resp.raise_for_status()
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         logger.warning("metadata_id_token_unavailable", extra={"reason": repr(exc)})
         return None
     return resp.text.strip() or None

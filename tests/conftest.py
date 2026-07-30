@@ -26,7 +26,7 @@ def _scanner_semaphore() -> Iterator[None]:
 def _stub_metadata_server() -> Iterator[None]:
     """Pretend the platform metadata server is unreachable.
 
-    Tests run off-platform so a real fetch would DNS-fail after the httpx
+    Tests run off-platform so a real fetch would DNS-fail after the httpx2
     timeout and slow every test. Patching ``iam_client._fetch`` to return
     ``None`` exercises the local-dev fallback path without any network IO.
     """

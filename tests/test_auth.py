@@ -293,7 +293,7 @@ class TestJWKSRefreshCooldown:
         client = _mock_jwks_client(jwk)
         rogue = _sign(private, kid="unknown-kid")
 
-        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.auth.httpx2.AsyncClient", return_value=client):
             assert await verifier.verify_token(rogue) is None
             assert await verifier.verify_token(rogue) is None
 
@@ -310,7 +310,7 @@ class TestJWKSRefreshCooldown:
         # retry, which must not fetch again while the cooldown is running.
         forged = _sign(Ed25519PrivateKey.generate())
 
-        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.auth.httpx2.AsyncClient", return_value=client):
             assert await verifier.verify_token(forged) is None
             assert await verifier.verify_token(forged) is None
 
@@ -329,7 +329,7 @@ class TestJWKSRefreshCooldown:
         client = _mock_jwks_client(jwk)
         rogue = _sign(private, kid="unknown-kid")
 
-        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.auth.httpx2.AsyncClient", return_value=client):
             assert await verifier.verify_token(rogue) is None
             verifier._jwks_attempted_at = time.monotonic() - 31
             assert await verifier.verify_token(rogue) is None
@@ -404,14 +404,14 @@ class TestJWKSFetch:
         client.__aexit__.return_value = False
         client.get = AsyncMock(return_value=resp)
 
-        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.auth.httpx2.AsyncClient", return_value=client):
             result = await verifier.verify_token(_sign(private))
         assert result is not None
         assert verifier._jwks_keys[_KID]["kid"] == _KID
 
     @pytest.mark.anyio
     async def test_returns_none_when_jwks_fetch_fails(self) -> None:
-        import httpx as _httpx
+        import httpx2 as _httpx
 
         verifier = JWKSTokenVerifier(
             jwks_uri="https://issuer.example/jwks",
@@ -423,7 +423,7 @@ class TestJWKSFetch:
         client.__aexit__.return_value = False
         client.get = AsyncMock(side_effect=_httpx.ConnectError("boom"))
 
-        with patch("rozkoduj_mcp.auth.httpx.AsyncClient", return_value=client):
+        with patch("rozkoduj_mcp.auth.httpx2.AsyncClient", return_value=client):
             # Use a valid-shaped JWT that requires JWKS lookup.
             private = Ed25519PrivateKey.generate()
             assert await verifier.verify_token(_sign(private)) is None

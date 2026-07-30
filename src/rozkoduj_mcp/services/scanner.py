@@ -12,7 +12,7 @@ import os
 import re
 from typing import Any
 
-import httpx
+import httpx2
 
 from rozkoduj_mcp import iam_client
 from rozkoduj_mcp.auth import (
@@ -24,7 +24,7 @@ from rozkoduj_mcp.auth import (
 from rozkoduj_mcp.logging import current_trace_header
 
 # Managed by server / HTTP lifespan - created on startup, closed on shutdown.
-client: httpx.AsyncClient | None = None
+client: httpx2.AsyncClient | None = None
 
 # Cap concurrent upstream requests per process so bursts of tool calls stay
 # within a friendly window.
@@ -32,7 +32,7 @@ _MAX_CONCURRENT_REQUESTS = 4
 _request_semaphore: asyncio.Semaphore | None = None
 
 # Retry only on connection-level failures (DNS hiccup, dropped socket,
-# read-before-headers). httpx does not retry on 4xx/5xx by design;
+# read-before-headers). httpx2 does not retry on 4xx/5xx by design;
 # those are deterministic and retrying just doubles latency.
 _TRANSPORT_RETRIES = 2
 
@@ -77,20 +77,20 @@ def log_self_host_status() -> None:
         )
 
 
-def setup_client(api_url: str, timeout: float = 20.0) -> httpx.AsyncClient:
-    """Create the module-level httpx client. Called from each transport's lifespan."""
+def setup_client(api_url: str, timeout: float = 20.0) -> httpx2.AsyncClient:
+    """Create the module-level httpx2 client. Called from the server lifespan."""
     global client, _request_semaphore
-    client = httpx.AsyncClient(
+    client = httpx2.AsyncClient(
         base_url=api_url,
         timeout=timeout,
-        transport=httpx.AsyncHTTPTransport(retries=_TRANSPORT_RETRIES),
+        transport=httpx2.AsyncHTTPTransport(retries=_TRANSPORT_RETRIES),
     )
     _request_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_REQUESTS)
     return client
 
 
 async def close_client() -> None:
-    """Close the module-level httpx client. Idempotent."""
+    """Close the module-level httpx2 client. Idempotent."""
     global client, _request_semaphore
     if client is not None:
         await client.aclose()
@@ -98,7 +98,7 @@ async def close_client() -> None:
     _request_semaphore = None
 
 
-def _get_client() -> httpx.AsyncClient:
+def _get_client() -> httpx2.AsyncClient:
     if client is None:
         msg = "scanner.client not initialized - server lifespan not started"
         raise RuntimeError(msg)
@@ -112,7 +112,7 @@ def _get_semaphore() -> asyncio.Semaphore:
     return _request_semaphore
 
 
-def _rate_limit_error(context: str, exc: httpx.HTTPStatusError) -> RuntimeError:
+def _rate_limit_error(context: str, exc: httpx2.HTTPStatusError) -> RuntimeError:
     """Build a RuntimeError for an upstream 429 with the Retry-After hint."""
     retry_after = exc.response.headers.get("Retry-After", "later")
     msg = (
@@ -130,12 +130,12 @@ async def _post(path: str, context: str, **kwargs: Any) -> Any:
         try:
             resp = await _get_client().post(path, **kwargs)
             resp.raise_for_status()
-        except httpx.HTTPStatusError as exc:
+        except httpx2.HTTPStatusError as exc:
             if exc.response.status_code == 429:
                 raise _rate_limit_error(context, exc) from exc
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
         return resp.json()
@@ -149,7 +149,7 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
         try:
             resp = await _get_client().get(path, **kwargs)
             resp.raise_for_status()
-        except httpx.HTTPStatusError as exc:
+        except httpx2.HTTPStatusError as exc:
             if exc.response.status_code == 429:
                 raise _rate_limit_error(context, exc) from exc
             if exc.response.status_code == 404:
@@ -157,7 +157,7 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
                 raise RuntimeError(msg) from exc
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
         return resp.json()

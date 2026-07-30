@@ -18,8 +18,7 @@ from rozkoduj_mcp.auth import (
     default_verifier,
 )
 from rozkoduj_mcp.logging import RequestLoggingMiddleware
-from rozkoduj_mcp.server import mcp
-from rozkoduj_mcp.services import scanner
+from rozkoduj_mcp.server import TRANSPORT_SECURITY, mcp
 
 __version__ = version("rozkoduj-mcp")
 
@@ -68,17 +67,15 @@ async def _oauth_protected_resource(request: Request) -> JSONResponse:
 def build_app() -> Starlette:
     """Build the production Starlette app."""
 
+    # The data-API client is owned solely by the server's own lifespan, which
+    # session_manager.run() drives. Setting it up here as well used to be
+    # harmless because the stateless transport re-entered that lifespan per
+    # request; it now runs once per session manager, so a second setup here
+    # would orphan an unclosed client for the life of the process.
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
-        scanner.setup_client(
-            os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
-        )
-        scanner.log_self_host_status()
         async with mcp.session_manager.run():
-            try:
-                yield
-            finally:
-                await scanner.close_client()
+            yield
 
     middleware: list[Middleware] = [
         Middleware(RequestLoggingMiddleware),
@@ -93,7 +90,14 @@ def build_app() -> Starlette:
                 "/.well-known/oauth-protected-resource/mcp",
                 _oauth_protected_resource,
             ),
-            Mount("/", app=mcp.streamable_http_app()),
+            Mount(
+                "/",
+                app=mcp.streamable_http_app(
+                    stateless_http=True,
+                    json_response=True,
+                    transport_security=TRANSPORT_SECURITY,
+                ),
+            ),
         ],
         middleware=middleware,
         lifespan=lifespan,

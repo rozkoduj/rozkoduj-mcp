@@ -4,13 +4,14 @@ import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 
 from rozkoduj_mcp.services import scanner as scanner_mod
 from rozkoduj_mcp.services.scanner import (
     _get_client,
     _get_semaphore,
+    close_client,
     list_strategies,
     search_research,
 )
@@ -34,6 +35,31 @@ class TestGetSemaphore:
             _get_semaphore()
 
 
+class TestCloseClient:
+    """Tests for close_client()."""
+
+    @pytest.mark.anyio
+    async def test_closes_once_and_tolerates_a_second_call(self) -> None:
+        # Shutdown ordering is not something a caller should have to reason
+        # about, so closing twice must not raise and must not double-close the
+        # underlying client.
+        client = MagicMock()
+        client.aclose = AsyncMock()
+        # Assigned through an Optional-typed local: a direct assignment narrows
+        # the module attribute for the rest of the function, and mypy cannot
+        # see that close_client() clears it, so the assertions below would be
+        # flagged unreachable.
+        installed: httpx2.AsyncClient | None = client
+        scanner_mod.client = installed
+
+        await close_client()
+        await close_client()
+
+        client.aclose.assert_awaited_once()
+        assert scanner_mod.client is None
+        assert scanner_mod._request_semaphore is None
+
+
 def _mock_response(data: Any, status: int = 200) -> MagicMock:
     resp = MagicMock()
     resp.status_code = status
@@ -44,23 +70,23 @@ def _mock_response(data: Any, status: int = 200) -> MagicMock:
 
 
 def _mock_429_response(retry_after: str | None = "3600") -> MagicMock:
-    """Mock httpx response that raises HTTPStatusError(429) on raise_for_status()."""
+    """Mock httpx2 response that raises HTTPStatusError(429) on raise_for_status()."""
     resp = MagicMock()
     resp.status_code = 429
     resp.headers = {"Retry-After": retry_after} if retry_after is not None else {}
     resp.is_success = False
-    err = httpx.HTTPStatusError("429", request=MagicMock(), response=resp)
+    err = httpx2.HTTPStatusError("429", request=MagicMock(), response=resp)
     resp.raise_for_status = MagicMock(side_effect=err)
     return resp
 
 
 def _mock_status_error_response(status: int) -> MagicMock:
-    """Mock httpx response that raises HTTPStatusError(<status>) on raise_for_status()."""
+    """Mock httpx2 response that raises HTTPStatusError(<status>) on raise_for_status()."""
     resp = MagicMock()
     resp.status_code = status
     resp.headers = {}
     resp.is_success = False
-    err = httpx.HTTPStatusError(str(status), request=MagicMock(), response=resp)
+    err = httpx2.HTTPStatusError(str(status), request=MagicMock(), response=resp)
     resp.raise_for_status = MagicMock(side_effect=err)
     return resp
 
@@ -71,7 +97,7 @@ class TestPostErrorPaths:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_connect_error_raises_runtime(self, mock_client: AsyncMock) -> None:
-        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+        mock_client.post = AsyncMock(side_effect=httpx2.ConnectError("timeout"))
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await search_research(query="momentum")
@@ -113,7 +139,7 @@ class TestGetErrorPaths:
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.services.scanner.client")
     async def test_connect_error_raises_runtime(self, mock_client: AsyncMock) -> None:
-        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("timeout"))
+        mock_client.get = AsyncMock(side_effect=httpx2.ConnectError("timeout"))
 
         with pytest.raises(RuntimeError, match="Data backend unavailable"):
             await list_strategies()

@@ -6,7 +6,7 @@ import time
 from contextvars import ContextVar
 from typing import Any
 
-import httpx
+import httpx2
 import jwt
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from starlette.responses import PlainTextResponse
@@ -100,7 +100,7 @@ class JWKSTokenVerifier(TokenVerifier):
         # Stamped before the fetch so failed attempts burn the cooldown too -
         # an unreachable JWKS endpoint must not get hammered either.
         self._jwks_attempted_at = now
-        async with httpx.AsyncClient(timeout=self._http_timeout) as client:
+        async with httpx2.AsyncClient(timeout=self._http_timeout) as client:
             resp = await client.get(self._jwks_uri)
             resp.raise_for_status()
             payload = resp.json()
@@ -168,7 +168,7 @@ class JWKSTokenVerifier(TokenVerifier):
                     extra={"reason": "no matching signing key or bad signature"},
                 )
                 return None
-        except (jwt.PyJWTError, httpx.HTTPError, ValueError, KeyError) as exc:
+        except (jwt.PyJWTError, httpx2.HTTPError, ValueError, KeyError) as exc:
             logger.warning("token_rejected", extra={"reason": repr(exc)})
             return None
 

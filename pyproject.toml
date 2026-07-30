@@ -22,8 +22,8 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "mcp>=1.28.1",
-    "httpx>=0.28.1",
+    "mcp>=2.0.0",
+    "httpx2>=2.9.1",
     "pyjwt[crypto]>=2.13.0",
 ]
 
@@ -84,15 +84,11 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 xfail_strict = true
 # Fail the suite on any warning so a dependency deprecation surfaces in CI
-# (which auto-deploys) instead of in production. The one scoped ignore is
-# starlette's TestClient nudging toward its httpx2 successor - benign and
-# test-only; we deliberately do not pull a second HTTP stack into dev just to
-# silence it (runtime is pinned to httpx<1 via the mcp SDK). The narrow message
-# match means any OTHER deprecation still fails the build.
-filterwarnings = [
-    "error",
-    "ignore:Using `httpx` with `starlette.testclient`:starlette.exceptions.StarletteDeprecationWarning",
-]
+# (which auto-deploys) instead of in production. The scoped ignore that used to
+# sit here silenced starlette's TestClient nudging toward its httpx2 successor;
+# httpx2 is now the only HTTP stack in the tree, so TestClient takes its native
+# path, the warning can no longer fire, and the ignore is gone with it.
+filterwarnings = ["error"]
 
 [tool.coverage.run]
 source = ["rozkoduj_mcp"]

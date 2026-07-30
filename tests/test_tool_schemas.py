@@ -1,7 +1,7 @@
 """Contract tests: tool input schemas carry the declarative length bounds.
 
 With Pydantic `Field` constraints the bound lives in the generated JSON Schema
-(so the calling LLM sees it and self-limits) and FastMCP/Pydantic enforce it
+(so the calling LLM sees it and self-limits) and the server/Pydantic enforce it
 before the tool body runs - so we assert the published contract, not a
 hand-rolled raise inside each tool.
 """
@@ -14,7 +14,7 @@ from rozkoduj_mcp.server import mcp
 
 
 async def _schemas() -> dict[str, dict[str, Any]]:
-    return {tool.name: tool.inputSchema for tool in await mcp.list_tools()}
+    return {tool.name: tool.input_schema for tool in await mcp.list_tools()}
 
 
 def _string_variant(prop: dict[str, Any]) -> dict[str, Any]:
@@ -111,40 +111,40 @@ class TestToolParameterBounds:
 
 
 class TestBoundsEnforcedEndToEnd:
-    """Schema assertions prove the bound is advertised; these prove FastMCP
+    """Schema assertions prove the bound is advertised; these prove the server
     actually rejects out-of-bounds input before the tool body runs."""
 
     @pytest.mark.anyio
     async def test_too_short_query_rejected(self) -> None:
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="at least 2 characters"):
             await mcp.call_tool("research", {"query": "x"})
 
     @pytest.mark.anyio
     async def test_overlong_query_rejected(self) -> None:
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="at most 300 characters"):
             await mcp.call_tool("research", {"query": "x" * 301})
 
     @pytest.mark.anyio
     async def test_oversized_limit_rejected(self) -> None:
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="less than or equal to 50"):
             await mcp.call_tool("leaderboard", {"limit": 200})
 
     @pytest.mark.anyio
     async def test_negative_offset_rejected(self) -> None:
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="greater than or equal to 0"):
             await mcp.call_tool("leaderboard", {"offset": -5})
 
     @pytest.mark.anyio
     async def test_path_like_identifier_rejected(self) -> None:
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="match pattern"):
             await mcp.call_tool("strategy", {"identifier": "../strategies"})
@@ -152,7 +152,7 @@ class TestBoundsEnforcedEndToEnd:
     @pytest.mark.anyio
     async def test_wildcard_symbol_rejected(self) -> None:
         # % would turn the upstream case-insensitive match into a wildcard.
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="match pattern"):
             await mcp.call_tool("leaderboard", {"symbol": "A%"})
@@ -160,16 +160,16 @@ class TestBoundsEnforcedEndToEnd:
     @pytest.mark.anyio
     async def test_path_like_instrument_symbol_rejected(self) -> None:
         # The instrument symbol lands in the request path - separators out.
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         with pytest.raises(ToolError, match="match pattern"):
             await mcp.call_tool("instrument", {"symbol": "../admin"})
 
     @pytest.mark.anyio
     async def test_dot_segment_symbols_rejected(self) -> None:
-        # "." and ".." are RFC 3986 dot-segments: httpx would collapse
+        # "." and ".." are RFC 3986 dot-segments: httpx2 would collapse
         # /instruments/.. to the API root instead of a dossier path.
-        from mcp.server.fastmcp.exceptions import ToolError
+        from mcp.server.mcpserver.exceptions import ToolError
 
         for symbol in (".", ".."):
             with pytest.raises(ToolError, match="match pattern"):

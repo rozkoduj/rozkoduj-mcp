@@ -3,9 +3,9 @@
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from importlib.metadata import version
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
 from rozkoduj_mcp.services import scanner
@@ -17,7 +17,12 @@ _API_URL = os.environ.get("ROZKODUJ_API_URL", "https://api.rozkoduj.com")
 # bad Origin and 421 for a bad Host). Non-browser MCP clients send no
 # Origin header and pass untouched; browsers are additionally fenced by
 # the absence of CORS headers on the MCP endpoint itself.
-_TRANSPORT_SECURITY = TransportSecuritySettings(
+#
+# Module-public because the transport settings are no longer a constructor
+# argument - the entrypoint hands them to streamable_http_app() instead.
+# Omitting them there is not a soft default: the app falls back to a
+# localhost-only allowlist and every production request 421s.
+TRANSPORT_SECURITY = TransportSecuritySettings(
     enable_dns_rebinding_protection=True,
     allowed_hosts=[
         "mcp.rozkoduj.com",
@@ -38,8 +43,8 @@ _TRANSPORT_SECURITY = TransportSecuritySettings(
 
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
-    """Manage httpx client lifecycle - proper startup/shutdown."""
+async def app_lifespan(server: MCPServer[None]) -> AsyncIterator[None]:
+    """Manage httpx2 client lifecycle - proper startup/shutdown."""
     scanner.setup_client(_API_URL)
     scanner.log_self_host_status()
     try:
@@ -48,8 +53,18 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
         await scanner.close_client()
 
 
-_mcp_kwargs: dict[str, Any] = {
-    "instructions": (
+# Transport settings (stateless_http / json_response / transport_security)
+# are no longer constructor arguments - they belong to streamable_http_app()
+# and are passed by the entrypoint. `instructions` stays keyword-only on
+# purpose: the positional order here is name, title, description, so a
+# positional argument would quietly land in `title`.
+#
+# `version` is read straight from the installed distribution rather than
+# imported from the package root, which would close an import cycle. Left
+# unset the SDK reports an empty server version to every client.
+mcp = MCPServer(
+    "rozkoduj",
+    instructions=(
         "Rozkoduj's own trading intelligence, mirroring the site's pillars: "
         "'leaderboard' - published, backtested strategies ranked by the "
         "Rozkoduj Score (filter by family, or by instrument symbol to answer "
@@ -62,14 +77,9 @@ _mcp_kwargs: dict[str, Any] = {
         "public articles (returns slug+locale for citation) and, for "
         "signed-in paid tiers, the deeper knowledge corpus."
     ),
-    "host": "0.0.0.0",
-    "stateless_http": True,
-    "json_response": True,
-    "lifespan": app_lifespan,
-    "transport_security": _TRANSPORT_SECURITY,
-}
-
-mcp = FastMCP("rozkoduj", **_mcp_kwargs)
+    version=version("rozkoduj-mcp"),
+    lifespan=app_lifespan,
+)
 
 # Import tool modules so @mcp.tool() decorators register with the server.
 import rozkoduj_mcp.tools.instrument as _instrument  # noqa: F401, E402
