@@ -39,7 +39,7 @@ def _mock_result(*, locked: bool) -> dict[str, Any]:
             {
                 "fields": ["knowledge"],
                 "required_tier": "pro",
-                "unlock_url": "https://rozkoduj.com/login",
+                "unlock_url": "https://www.rozkoduj.com/login",
                 "reason": "sign in to include it",
             }
             if locked

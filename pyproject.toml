@@ -31,7 +31,7 @@ dependencies = [
 rozkoduj-mcp = "rozkoduj_mcp:main"
 
 [project.urls]
-Homepage = "https://rozkoduj.com"
+Homepage = "https://www.rozkoduj.com"
 Repository = "https://github.com/rozkoduj/rozkoduj-mcp"
 Issues = "https://github.com/rozkoduj/rozkoduj-mcp/issues"
 Changelog = "https://github.com/rozkoduj/rozkoduj-mcp/releases"
