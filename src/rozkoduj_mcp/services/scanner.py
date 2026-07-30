@@ -201,17 +201,19 @@ async def list_strategies(
     *,
     status: str = "active",
     sort: str = "score_desc",
-    visibility: str = "public",
     family: str | None = None,
     symbol: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
-    """List Rozkoduj's published strategies."""
+    """List Rozkoduj's published strategies.
+
+    Publication scope is fixed upstream, so there is no visibility argument to
+    forward.
+    """
     params: dict[str, str | int] = {
         "status": status,
         "sort": sort,
-        "visibility": visibility,
         "limit": limit,
         "offset": offset,
     }

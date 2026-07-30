@@ -1,6 +1,6 @@
 [project]
 name = "rozkoduj-mcp"
-version = "2026.7.19"
+version = "2026.7.25"
 description = "Market intelligence for your AI assistant - algo-trading strategies, analytics and specialized research knowledge."
 readme = "README.md"
 license = "MIT"
@@ -38,16 +38,21 @@ Changelog = "https://github.com/rozkoduj/rozkoduj-mcp/releases"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.3",
-    "anyio>=4.13.0",
-    "mypy>=2.1.0",
-    "ruff>=0.15.13",
-    "pre-commit>=4.6.0",
-    "coverage>=7.14.0",
+    "pytest>=9.1.1",
+    "anyio>=4.14.2",
+    "mypy>=2.3.0",
+    "ruff>=0.16.1",
+    "pre-commit>=4.6.1",
+    "coverage>=7.15.2",
+    # Exact pin, and deliberately so: setup-uv reads this file to pick the uv it
+    # installs, but a `>=` specifier resolves to "latest" there, which is how CI
+    # ends up floating. An `==` is the only form that actually pins. Dependabot's
+    # uv ecosystem keeps it fresh, so the pin does not go stale.
+    "uv==0.12.0",
 ]
 
 [build-system]
-requires = ["uv_build>=0.11.2,<0.12"]
+requires = ["uv_build>=0.11.32,<0.13"]
 build-backend = "uv_build"
 
 [tool.ruff.lint]

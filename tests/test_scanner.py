@@ -160,14 +160,12 @@ class TestListStrategies:
             return_value=_mock_response({"items": [], "total": 0})
         )
 
-        await list_strategies(
-            status="active", sort="score_desc", visibility="public", limit=10, offset=0
-        )
+        await list_strategies(status="active", sort="score_desc", limit=10, offset=0)
 
         params = mock_client.get.call_args[1]["params"]
         assert params["status"] == "active"
         assert params["sort"] == "score_desc"
-        assert params["visibility"] == "public"
+        assert "visibility" not in params
         assert params["limit"] == 10
         assert params["offset"] == 0
         assert "family" not in params

@@ -46,7 +46,6 @@ class TestLeaderboard:
         mock_scanner.list_strategies.assert_called_once_with(
             status="active",
             sort="score_desc",
-            visibility="public",
             family=None,
             symbol=None,
             limit=20,
@@ -67,7 +66,6 @@ class TestLeaderboard:
         mock_scanner.list_strategies.assert_called_once_with(
             status="all",
             sort="apy_desc",
-            visibility="public",
             family="ma_cross",
             symbol=None,
             limit=5,

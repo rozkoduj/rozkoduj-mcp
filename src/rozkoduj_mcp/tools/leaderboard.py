@@ -16,7 +16,6 @@ FamilySlug = Annotated[str, Field(max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
 async def leaderboard(
     status: Literal["active", "archived", "all"] = "active",
     sort: Literal["score_desc", "apy_desc", "recent"] = "score_desc",
-    visibility: Literal["public", "all"] = "public",
     family: FamilySlug | None = None,
     symbol: Symbol | None = None,
     limit: Annotated[int, Field(ge=1, le=50)] = 20,
@@ -48,7 +47,6 @@ async def leaderboard(
     return await scanner.list_strategies(
         status=status,
         sort=sort,
-        visibility=visibility,
         family=family,
         symbol=symbol,
         limit=limit,
