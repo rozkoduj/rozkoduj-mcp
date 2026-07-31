@@ -1,12 +1,13 @@
 """MCP tool: one strategy's full dossier."""
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS
+from rozkoduj_mcp.tools.models import Strategy
 
 # Slug / ULID characters only. The identifier is interpolated into the
 # upstream request path, so the pattern also keeps it path-safe.
@@ -14,7 +15,7 @@ StrategyId = Annotated[str, Field(max_length=100, pattern=r"^[A-Za-z0-9_-]+$")]
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
-async def strategy(identifier: StrategyId) -> dict[str, Any]:
+async def strategy(identifier: StrategyId) -> Strategy:
     """One strategy's full dossier, including its backtest summary.
 
     `identifier` is either the URL slug (e.g. `ma-crossover`) or the
@@ -30,4 +31,4 @@ async def strategy(identifier: StrategyId) -> dict[str, Any]:
     user names a strategy directly. Raises a not-found error when no
     strategy matches `identifier`.
     """
-    return await scanner.strategy_details(identifier)
+    return Strategy(**await scanner.strategy_details(identifier))

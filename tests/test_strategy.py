@@ -47,10 +47,11 @@ class TestStrategy:
         result = await strategy("ma-cross-ema")
 
         mock_scanner.strategy_details.assert_called_once_with("ma-cross-ema")
-        assert result["slug"] == "ma-cross-ema"
-        assert result["best_run"]["cagr"] == 0.45
-        assert result["best_run"]["rozkoduj_score"] == 78.0
-        assert result["best_run"]["unit_risk_band"] == "balanced"
+        assert result.slug == "ma-cross-ema"
+        assert result.best_run is not None
+        assert result.best_run["cagr"] == 0.45
+        assert result.best_run["rozkoduj_score"] == 78.0
+        assert result.best_run["unit_risk_band"] == "balanced"
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.strategy.scanner")

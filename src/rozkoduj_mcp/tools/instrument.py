@@ -1,12 +1,13 @@
 """MCP tool: the instrument catalog and per-symbol dossiers."""
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Symbol
+from rozkoduj_mcp.tools.models import InstrumentResult
 
 # Catalog facet values are lowercase slugs (equity, crypto, live, ...).
 Facet = Annotated[str, Field(min_length=1, max_length=32, pattern=r"^[a-z_]+$")]
@@ -19,7 +20,7 @@ async def instrument(
     status: Facet | None = None,
     limit: Annotated[int, Field(ge=1, le=200)] = 50,
     offset: Annotated[int, Field(ge=0, le=10000)] = 0,
-) -> dict[str, Any]:
+) -> InstrumentResult:
     """The instrument catalog, or one instrument's dossier.
 
     Without `symbol`: the catalog of covered markets - name, venue, asset
@@ -39,7 +40,9 @@ async def instrument(
     same symbol.
     """
     if symbol:
-        return await scanner.instrument_details(symbol)
-    return await scanner.list_instruments(
-        asset_class=asset_class, status=status, limit=limit, offset=offset
+        return InstrumentResult(**await scanner.instrument_details(symbol))
+    return InstrumentResult(
+        **await scanner.list_instruments(
+            asset_class=asset_class, status=status, limit=limit, offset=offset
+        )
     )

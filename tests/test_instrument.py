@@ -65,7 +65,7 @@ class TestCatalogMode:
             asset_class=None, status=None, limit=50, offset=0
         )
         mock_scanner.instrument_details.assert_not_called()
-        assert result["total"] == 512
+        assert result.total == 512
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.instrument.scanner")
@@ -89,6 +89,7 @@ class TestDossierMode:
 
         mock_scanner.instrument_details.assert_called_once_with("AAPL")
         mock_scanner.list_instruments.assert_not_called()
-        assert result["listing_slug"] == "aapl-us"
-        assert result["stats"]["cagr"] == 0.21
-        assert result["stats"]["fingerprint_axes"][0]["axis"] == "momentum"
+        assert result.listing_slug == "aapl-us"
+        assert result.stats is not None
+        assert result.stats.cagr == 0.21
+        assert result.stats.fingerprint_axes[0]["axis"] == "momentum"

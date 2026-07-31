@@ -1,12 +1,13 @@
 """MCP tool: search the research corpus."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
 from rozkoduj_mcp.server import mcp
 from rozkoduj_mcp.services import scanner
 from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, SearchQuery
+from rozkoduj_mcp.tools.models import ResearchResult
 
 
 @mcp.tool(annotations=TOOL_ANNOTATIONS)
@@ -14,7 +15,7 @@ async def research(
     query: SearchQuery,
     locale: Literal["en", "pl"] | None = None,
     limit: Annotated[int, Field(ge=1, le=20)] = 5,
-) -> dict[str, Any]:
+) -> ResearchResult:
     """Search the research - public articles plus, when signed in on a paid
     tier, the deeper knowledge base, in one query.
 
@@ -35,4 +36,6 @@ async def research(
         locale: Optional article locale - "en" or "pl".
         limit: How many top passages per list (1-20, default 5).
     """
-    return await scanner.search_research(query=query, locale=locale, limit=limit)
+    return ResearchResult(
+        **await scanner.search_research(query=query, locale=locale, limit=limit)
+    )

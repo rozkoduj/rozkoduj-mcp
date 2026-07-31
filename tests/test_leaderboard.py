@@ -15,6 +15,11 @@ def _mock_result() -> dict[str, Any]:
                 "algorithm_uid": "01JABC",
                 "slug": "ma-cross-ema",
                 "name": {"en": "MA Cross EMA"},
+                # Required by the API's Strategy contract, and omitted here
+                # until the tools grew output models - the mock had drifted
+                # into a shape the service cannot actually return.
+                "created_at": "2026-01-01T00:00:00Z",
+                "updated_at": "2026-07-01T00:00:00Z",
                 "best_run": {
                     "symbol": "aapl-us",
                     "cagr": 0.45,
@@ -51,8 +56,8 @@ class TestLeaderboard:
             limit=20,
             offset=0,
         )
-        assert result["total"] == 1
-        assert result["items"][0]["slug"] == "ma-cross-ema"
+        assert result.total == 1
+        assert result.items[0].slug == "ma-cross-ema"
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.leaderboard.scanner")

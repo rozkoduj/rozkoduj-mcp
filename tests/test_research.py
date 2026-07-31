@@ -63,9 +63,9 @@ class TestResearch:
         mock_scanner.search_research.assert_called_once_with(
             query="drawdown", locale="en", limit=3
         )
-        assert result["articles"][0]["slug"].startswith("the-complete")
-        assert result["knowledge"][0]["doc_id"] == "lessons/risk-101"
-        assert result["locked"] is None
+        assert result.articles[0].slug.startswith("the-complete")
+        assert result.knowledge[0].doc_id == "lessons/risk-101"
+        assert result.locked is None
 
     @pytest.mark.anyio
     @patch("rozkoduj_mcp.tools.research.scanner")
@@ -81,5 +81,6 @@ class TestResearch:
         call = mock_scanner.search_research.call_args
         assert call.kwargs["locale"] is None
         assert call.kwargs["limit"] == 5
-        assert result["knowledge"] == []
-        assert result["locked"]["fields"] == ["knowledge"]
+        assert result.knowledge == []
+        assert result.locked is not None
+        assert result.locked.fields == ["knowledge"]

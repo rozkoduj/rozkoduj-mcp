@@ -174,3 +174,50 @@ class TestBoundsEnforcedEndToEnd:
         for symbol in (".", ".."):
             with pytest.raises(ToolError, match="match pattern"):
                 await mcp.call_tool("instrument", {"symbol": symbol})
+
+
+class TestToolOutputSchemas:
+    """The output side of the same contract.
+
+    Every tool used to return `dict[str, Any]`, which the SDK renders as a bare
+    object schema: the ~40 field names the docstrings promise existed nowhere a
+    client could read them, and a renamed field just vanished from the response
+    instead of failing. These assert the schema is published AND that it is
+    specific enough to be worth publishing.
+    """
+
+    @pytest.mark.anyio
+    async def test_every_tool_publishes_a_specific_output_schema(self) -> None:
+        for tool in await mcp.list_tools():
+            schema = tool.output_schema
+            assert schema is not None, f"{tool.name} publishes no output schema"
+            props = schema.get("properties") or {}
+            assert props, f"{tool.name} publishes an output schema with no fields"
+
+    @pytest.mark.anyio
+    async def test_no_tool_output_is_wrapped_in_result(self) -> None:
+        # Scalars, lists, tuples and unions get wrapped by the SDK into
+        # {"result": ...}. Every tool here returns a model precisely so the
+        # payload stays where existing clients already read it - a wrapper
+        # appearing means someone changed a return type to a union.
+        for tool in await mcp.list_tools():
+            props = (tool.output_schema or {}).get("properties") or {}
+            assert set(props) != {"result"}, (
+                f"{tool.name} output got wrapped in a result envelope"
+            )
+
+    @pytest.mark.anyio
+    async def test_documented_fields_are_in_the_schema(self) -> None:
+        # A sample per tool, chosen from what the docstring tells the model to
+        # look for. If a field is renamed upstream, this fails here rather than
+        # silently shrinking the response.
+        expected = {
+            "leaderboard": {"items", "total", "limit", "offset"},
+            "strategy": {"algorithm_uid", "slug", "name", "best_run"},
+            "research": {"query", "articles", "knowledge", "locked"},
+            "instrument": {"items", "listing_slug", "stats", "asset_class"},
+        }
+        by_name = {tool.name: tool for tool in await mcp.list_tools()}
+        for name, fields in expected.items():
+            props = set((by_name[name].output_schema or {}).get("properties") or {})
+            assert fields <= props, f"{name} is missing {fields - props}"
