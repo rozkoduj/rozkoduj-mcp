@@ -43,11 +43,11 @@ async def leaderboard(
 
     Each item carries `algorithm_uid` (ULID), `slug`, i18n
     `name`/`description`, `family`/`variant`, and `best_run` with hot
-    metrics: `symbol` (the instrument the metrics were earned on), `cagr`
-    (APY in the instrument's local currency), `cagr_usd` (APY in USD - use
-    this whenever comparing across markets), `max_drawdown`, `win_rate_pct`,
-    `num_trades`, `rozkoduj_score`, `rozkoduj_band`, the risk mode
-    (`unit_risk_band`, `unit_risk_score`), and a `sparkline`.
+    metrics: `listing_slug` (the instrument the metrics were earned on),
+    `cagr` (APY in the instrument's local currency), `cagr_usd` (APY in USD -
+    use this whenever comparing across markets), `max_drawdown`,
+    `win_rate_pct`, `num_trades`, `rozkoduj_score`, `rozkoduj_band`, the risk
+    mode (`unit_risk_band`, `unit_risk_score`), and a `sparkline`.
 
     For one strategy's full dossier use `strategy`.
     """

@@ -42,11 +42,13 @@ def _dossier_result() -> dict[str, Any]:
         "stats": {
             "asof_date": "2026-07-10",
             "cagr": 0.21,
-            "volatility_pct": 0.28,
-            "max_drawdown": -0.31,
+            # Percent points, matching the columns' units and CHECKs — a
+            # fraction here (0.28) passed while asserting the wrong contract.
+            "volatility_pct": 28.0,
+            "max_drawdown": 31.0,
             "time_underwater_pct": 42.0,
             "kaufman_er": 0.18,
-            "trend_share_pct": 0.55,
+            "trend_share_pct": 55.0,
             "fingerprint_axes": [{"axis": "momentum", "value": 0.7}],
             "verdict": {"band": "strong"},
         },

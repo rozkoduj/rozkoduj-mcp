@@ -18,10 +18,10 @@ def _mock_result() -> dict[str, Any]:
         "variant": "ema",
         "version": "v1",
         "best_run": {
-            "symbol": "aapl-us",
+            "listing_slug": "aapl-us",
             "cagr": 0.45,
-            "max_drawdown": -0.18,
-            "win_rate_pct": 0.61,
+            "max_drawdown": 18.0,
+            "win_rate_pct": 61.0,
             "num_trades": 142,
             "rozkoduj_score": 78.0,
             "rozkoduj_band": "strong",
