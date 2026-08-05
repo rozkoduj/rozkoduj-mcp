@@ -71,7 +71,7 @@ mcp = MCPServer(
         "'what works best on AAPL?'); 'strategy' - one strategy's full "
         "dossier with its backtest summary (score, APY as cagr local / "
         "cagr_usd cross-market, max_drawdown, "
-        "win_rate, risk mode); 'instrument' - the covered-markets catalog, "
+        "win_rate_pct, risk mode); 'instrument' - the covered-markets catalog, "
         "or with a symbol one instrument's dossier (buy-and-hold facts + the "
         "six-axis character fingerprint); 'research' - one search across the "
         "public articles (returns slug+locale for citation) and, for "

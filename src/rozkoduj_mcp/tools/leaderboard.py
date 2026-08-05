@@ -45,7 +45,7 @@ async def leaderboard(
     `name`/`description`, `family`/`variant`, and `best_run` with hot
     metrics: `symbol` (the instrument the metrics were earned on), `cagr`
     (APY in the instrument's local currency), `cagr_usd` (APY in USD - use
-    this whenever comparing across markets), `max_drawdown`, `win_rate`,
+    this whenever comparing across markets), `max_drawdown`, `win_rate_pct`,
     `num_trades`, `rozkoduj_score`, `rozkoduj_band`, the risk mode
     (`unit_risk_band`, `unit_risk_score`), and a `sparkline`.
 

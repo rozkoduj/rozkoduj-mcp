@@ -21,7 +21,7 @@ def _mock_result() -> dict[str, Any]:
             "symbol": "aapl-us",
             "cagr": 0.45,
             "max_drawdown": -0.18,
-            "win_rate": 0.61,
+            "win_rate_pct": 0.61,
             "num_trades": 142,
             "rozkoduj_score": 78.0,
             "rozkoduj_band": "strong",

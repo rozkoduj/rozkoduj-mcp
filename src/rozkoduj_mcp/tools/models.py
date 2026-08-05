@@ -118,7 +118,7 @@ class Instrument(_Mirror):
     status: str | None = None
     last_close: float | None = None
     prev_close: float | None = None
-    last_close_at: str | None = None
+    last_close_date: str | None = None
 
 
 class InstrumentStats(_Mirror):
@@ -171,5 +171,5 @@ class InstrumentResult(_Mirror):
     status: str | None = None
     last_close: float | None = None
     prev_close: float | None = None
-    last_close_at: str | None = None
+    last_close_date: str | None = None
     stats: InstrumentStats | None = None

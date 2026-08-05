@@ -23,7 +23,7 @@ async def strategy(identifier: StrategyId) -> Strategy:
     family/variant/version metadata and the `best_run` backtest summary:
     `rozkoduj_score`/`rozkoduj_band` (ranking axis), `cagr` (APY in the
     instrument's local currency), `cagr_usd` (APY in USD - the cross-market
-    canon), `max_drawdown`, `win_rate`, `num_trades`, the risk mode
+    canon), `max_drawdown`, `win_rate_pct`, `num_trades`, the risk mode
     (`unit_risk_band`, `unit_risk_score`), plus `sparkline`, `params_public`,
     and `data_start`/`data_end`.
 
