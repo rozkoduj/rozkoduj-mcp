@@ -31,6 +31,16 @@ class TestToolSurface:
         names = set((await _schemas()).keys())
         assert names == {"leaderboard", "strategy", "instrument", "research"}
 
+    @pytest.mark.anyio
+    async def test_every_tool_carries_a_display_title(self) -> None:
+        # `name` is the identifier a model calls; `title` is what a client
+        # shows a human in a picker or a permission prompt. Without it the
+        # UI falls back to the bare identifier, so the product words - the
+        # part a person recognises - never reach the screen.
+        for tool in await mcp.list_tools():
+            assert tool.title, f"{tool.name} publishes no title"
+            assert tool.title != tool.name, f"{tool.name} title adds nothing"
+
 
 class TestToolParameterBounds:
     @pytest.mark.anyio
@@ -60,15 +70,16 @@ class TestToolParameterBounds:
     @pytest.mark.anyio
     async def test_symbols_are_ticker_safe(self) -> None:
         # Symbols reach the upstream query (leaderboard) and the request
-        # path (instrument) - the schema pins them to ticker characters.
+        # path (instrument) - the schema pins them to the two forms the API
+        # resolves, a listing slug or a bare display ticker.
         schemas = await _schemas()
         for tool in ("leaderboard", "instrument"):
             variant = _string_variant(schemas[tool]["properties"]["symbol"])
             assert variant["minLength"] == 1, tool
             assert variant["maxLength"] == 20, tool
-            # First char alphanumeric/caret: a symbol can never be a pure
-            # dot sequence, so it can never collapse the upstream path.
-            assert variant["pattern"] == "^[A-Za-z0-9^][A-Za-z0-9.^=-]*$", tool
+            # First char alphanumeric: a symbol can never be a pure dot
+            # sequence, so it can never collapse the upstream path.
+            assert variant["pattern"] == "^[A-Za-z0-9][A-Za-z0-9-]*$", tool
 
     @pytest.mark.anyio
     async def test_instrument_facets_are_slug_safe(self) -> None:
@@ -174,6 +185,15 @@ class TestBoundsEnforcedEndToEnd:
         for symbol in (".", ".."):
             with pytest.raises(ToolError, match="match pattern"):
                 await mcp.call_tool("instrument", {"symbol": symbol})
+
+    @pytest.mark.anyio
+    async def test_decorated_symbol_forms_rejected(self) -> None:
+        from mcp.server.mcpserver.exceptions import ToolError
+
+        for symbol in ("aapl-us", "btc-usd", "wig20-pl", "eur-usd", "-aapl-us"):
+            for tool in ("instrument", "leaderboard"):
+                with pytest.raises(ToolError, match="match pattern"):
+                    await mcp.call_tool(tool, {"symbol": symbol})
 
 
 class TestToolOutputSchemas:

@@ -13,7 +13,7 @@ from rozkoduj_mcp.tools.models import InstrumentResult
 Facet = Annotated[str, Field(min_length=1, max_length=32, pattern=r"^[a-z_]+$")]
 
 
-@mcp.tool(annotations=TOOL_ANNOTATIONS)
+@mcp.tool(title="Instrument catalog and dossier", annotations=TOOL_ANNOTATIONS)
 async def instrument(
     symbol: Symbol | None = None,
     asset_class: Facet | None = None,
@@ -32,9 +32,9 @@ async def instrument(
     plus `stats`, the analytics summary: buy-and-hold facts (`cagr`,
     `volatility_pct`, `max_drawdown`, `time_underwater_pct`) and the six-axis character
     fingerprint (`fingerprint_axes`, with `verdict`). `stats` is null for freshly added
-    instruments. Case-insensitive: `AAPL` finds `aapl-us`; a venue-suffixed
-    id (`ry-ca`) pins one listing. Use for "what do you know about AAPL?",
-    "how volatile is BTC?".
+    instruments. Case-insensitive: `aapl` finds `aapl-us`; the full slug
+    (`ry-ca`) pins one listing when a ticker trades in several markets. Use
+    for "what do you know about AAPL?", "how volatile is BTC?".
 
     For strategies backtested on the instrument, use `leaderboard` with the
     same symbol.

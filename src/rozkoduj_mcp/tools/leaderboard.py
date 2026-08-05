@@ -13,7 +13,7 @@ from rozkoduj_mcp.tools.models import StrategyPage
 FamilySlug = Annotated[str, Field(max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
 
 
-@mcp.tool(annotations=TOOL_ANNOTATIONS)
+@mcp.tool(title="Strategy leaderboard", annotations=TOOL_ANNOTATIONS)
 async def leaderboard(
     status: Literal["active", "archived", "all"] = "active",
     sort: Literal["score_desc", "apy_desc", "recent"] = "score_desc",
@@ -24,11 +24,17 @@ async def leaderboard(
 ) -> StrategyPage:
     """The strategy leaderboard - published, backtested strategies, ranked.
 
-    Use for "what are the best strategies?", "what works best on AAPL?",
-    "best aggressive strategy?". `symbol` narrows to strategies backtested on
-    one instrument and makes `best_run` the best run *on that instrument* -
-    case-insensitive, plain tickers just work (`AAPL` finds `aapl-us`, `btc`
-    finds `btc-usd`, a venue-suffixed symbol like `ry-ca` pins one listing).
+    Use for "what are the best strategies?", "what works best on AAPL?".
+    `symbol` narrows to strategies backtested on one instrument and makes
+    `best_run` the best run *on that instrument* - case-insensitive, plain
+    tickers just work (`aapl` finds `aapl-us`, `btc` finds `btc-usd`; the
+    full slug like `ry-ca` pins one listing when a ticker trades in several
+    markets).
+
+    There is NO risk filter here: `unit_risk_band` is returned on `best_run`
+    but cannot be filtered or sorted on. Answer "best aggressive strategy?"
+    by fetching a page and reading `unit_risk_band`, never by inventing a
+    parameter.
 
     Sorting: `score_desc` (default) ranks by the Rozkoduj Score - the
     headline leaderboard axis; `apy_desc` ranks by annualised return in USD

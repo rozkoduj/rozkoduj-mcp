@@ -12,7 +12,7 @@ SearchQuery = Annotated[str, Field(min_length=2, max_length=300)]
 
 Symbol = Annotated[
     str,
-    Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9^][A-Za-z0-9.^=-]*$"),
+    Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9][A-Za-z0-9-]*$"),
 ]
 
 # All rozkoduj tools are read-only queries against Rozkoduj's own bounded

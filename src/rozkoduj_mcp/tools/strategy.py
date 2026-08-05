@@ -14,7 +14,7 @@ from rozkoduj_mcp.tools.models import Strategy
 StrategyId = Annotated[str, Field(max_length=100, pattern=r"^[A-Za-z0-9_-]+$")]
 
 
-@mcp.tool(annotations=TOOL_ANNOTATIONS)
+@mcp.tool(title="Strategy dossier", annotations=TOOL_ANNOTATIONS)
 async def strategy(identifier: StrategyId) -> Strategy:
     """One strategy's full dossier, including its backtest summary.
 

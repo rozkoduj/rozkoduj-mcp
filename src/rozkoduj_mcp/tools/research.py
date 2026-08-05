@@ -10,7 +10,7 @@ from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, SearchQuery
 from rozkoduj_mcp.tools.models import ResearchResult
 
 
-@mcp.tool(annotations=TOOL_ANNOTATIONS)
+@mcp.tool(title="Research and knowledge search", annotations=TOOL_ANNOTATIONS)
 async def research(
     query: SearchQuery,
     locale: Literal["en", "pl"] | None = None,
