@@ -34,4 +34,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: rozkoduj/rozkoduj-mcp
+      - run: |
+          hits=$(grep -rnE '${BOUNDARY_VOCAB_REGEX}' \
+                   --include='*.py' . | grep -v '/\.venv/' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::a rejected boundary name was reintroduced at the locations above"; exit 1
+          fi
       - run: uv cache prune --ci
