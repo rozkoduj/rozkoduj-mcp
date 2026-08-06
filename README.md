@@ -142,7 +142,6 @@ not a data dump.
 | You ask                                        | You get                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------- |
 | *"What strategy works best on AAPL?"*          | Strategies backtested on AAPL, ranked by their score on it          |
-| *"Best aggressive strategy right now?"*        | Leaderboard narrowed to the aggressive risk mode, ranked by score   |
 | *"How risky is BTC?"*                          | The instrument dossier - volatility, drawdowns, character fingerprint |
 | *"What does the research say about position sizing?"* | Ranked passages with `slug` + `locale` for citation          |
 
@@ -195,8 +194,8 @@ The hosted server at `https://mcp.rozkoduj.com/mcp` authenticates to the data
 API automatically. When you self-host the package, supply your own Rozkoduj API
 key so calls run as your subscription tier instead of the anonymous tier:
 
-1. Mint a key in the Rozkoduj dashboard (format `rzk_` + 40 hex). It maps to
-   your account's tier; revoke it there at any time.
+1. Ask for a key at hello@rozkoduj.com (format `rzk_` + 40 hex). It maps to
+   your account's tier.
 2. Provide it via the `ROZKODUJ_API_KEY` environment variable - never inline in
    committed config. In an MCP client, reference it as `${env:ROZKODUJ_API_KEY}`.
 3. A malformed value is ignored (requests fall back to anonymous); the active
