@@ -1,9 +1,17 @@
 [project]
 name = "rozkoduj-mcp"
-version = "2026.7.31"
+# Placeholder, never a release number. `publish.yml` overwrites it from the
+# release tag, so the only build that carries a real version is the one the
+# release workflow produces. Keeping a plausible CalVer here made the container
+# - which is built from source - advertise a version that was never published,
+# so the placeholder is deliberately one that cannot be mistaken for a release.
+version = "0.0.0"
 description = "Market intelligence for your AI assistant - algo-trading strategies, analytics and specialized research knowledge."
 readme = "README.md"
 license = "MIT"
+# Without this, uv_build ships no license text at all: the metadata claims MIT
+# while the wheel and sdist carry no notice for a redistributor to pass on.
+license-files = ["LICENSE"]
 requires-python = ">=3.14"
 authors = [
     { name = "Rozkoduj" },
