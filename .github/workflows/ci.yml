@@ -34,9 +34,21 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: rozkoduj/rozkoduj-mcp
-      - run: |
-          hits=$(grep -rnE '${BOUNDARY_VOCAB_REGEX}' \
-                   --include='*.py' . | grep -v '/\.venv/' || true)
+      - name: Boundary vocabulary check
+        env:
+          BOUNDARY_VOCAB_REGEX: ${{ secrets.BOUNDARY_VOCAB_REGEX }}
+          IS_FORK_PR: ${{ github.event.pull_request.head.repo.fork }}
+        run: |
+          if [ -z "$BOUNDARY_VOCAB_REGEX" ]; then
+            if [ "$IS_FORK_PR" = "true" ]; then
+              echo "::notice::check skipped - secrets are not exposed to fork pull requests"
+              exit 0
+            fi
+            echo "::error::the check pattern is not configured, so the check cannot run"
+            exit 1
+          fi
+          hits=$(grep -rnE "$BOUNDARY_VOCAB_REGEX" --include='*.py' . \
+                   | grep -v '/\.venv/' | cut -d: -f1,2 || true)
           if [ -n "$hits" ]; then
             echo "$hits"
             echo "::error::a rejected boundary name was reintroduced at the locations above"; exit 1
