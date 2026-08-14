@@ -34,6 +34,13 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: rozkoduj/rozkoduj-mcp
+      # The image is what actually ships, and nothing above this line looks at
+      # it: every other step runs against the working tree, where every file is
+      # present by definition. A packaging change the Dockerfile does not carry
+      # - a file the build reads but the image never copies - passes the whole
+      # suite and then fails at deploy, after merge, with production left on the
+      # previous revision. Building here moves that failure in front of the merge.
+      - run: docker build -t rozkoduj-mcp:ci .
       - name: Boundary vocabulary check
         env:
           BOUNDARY_VOCAB_REGEX: ${{ secrets.BOUNDARY_VOCAB_REGEX }}

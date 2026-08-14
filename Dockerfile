@@ -8,7 +8,10 @@ ENV UV_COMPILE_BYTECODE=1
 
 COPY --from=ghcr.io/astral-sh/uv:0.12.0@sha256:606e70c71c852d03f611b1e56a195d08648507018a7057fab82c4974c4eae105 /uv /usr/local/bin/uv
 
-COPY pyproject.toml uv.lock README.md ./
+# LICENSE is not documentation here - `project.license-files` names it, so the
+# build fails outright without it rather than merely shipping an artifact that
+# lacks the notice.
+COPY pyproject.toml uv.lock README.md LICENSE ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY src/ ./src/
 RUN uv sync --frozen --no-dev
