@@ -188,9 +188,12 @@ class TestBoundsEnforcedEndToEnd:
 
     @pytest.mark.anyio
     async def test_decorated_symbol_forms_rejected(self) -> None:
+        # Decorated identifier forms the API does not resolve. Rejecting them
+        # here turns a confusing empty answer into a message the model can act
+        # on by retrying with the slug.
         from mcp.server.mcpserver.exceptions import ToolError
 
-        for symbol in ("aapl-us", "btc-usd", "wig20-pl", "eur-usd", "-aapl-us"):
+        for symbol in ("abcd.ef", "abcd.gh", "^abcd", "abcdef=x", "-aapl-us"):
             for tool in ("instrument", "leaderboard"):
                 with pytest.raises(ToolError, match="match pattern"):
                     await mcp.call_tool(tool, {"symbol": symbol})
