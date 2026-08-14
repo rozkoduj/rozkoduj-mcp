@@ -1,16 +1,26 @@
+*
+
+# Directories are re-included so git can descend into them and reach the paths
+# allowed below; without this the entries under them would never be considered.
+!*/
+
+!/.dockerignore
+!/.env.example
+!/.gitignore
+!/.pre-commit-config.yaml
+!/.python-version
+!/Dockerfile
+!/LICENSE
+!/README.md
+!/pyproject.toml
+!/uv.lock
+
+!/.github/**
+!/docs/**
+!/src/**
+!/tests/**
+
+# Re-ignored last so they win inside the trees allowed above.
 __pycache__/
 *.pyc
-.venv/
-dist/
 *.egg-info/
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-.env
-.env.*
-!.env.example
-
-*.local.md
-*.private.md

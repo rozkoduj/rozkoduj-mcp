@@ -36,12 +36,12 @@ jobs:
           slug: rozkoduj/rozkoduj-mcp
       - name: Only published paths are tracked
         run: |
-          tracked=$(git ls-files \
-            'notes.md' 'scratch.md' \
-            'private.md' \
-            'draft.md')
-          if [ -n "$tracked" ]; then
-            echo "$tracked"
+          unexpected=$(git ls-files \
+            | grep -vE '^(src|tests|docs|\.github)/' \
+            | grep -vxE '\.dockerignore|\.env\.example|\.gitignore|\.pre-commit-config\.yaml|\.python-version|Dockerfile|LICENSE|README\.md|pyproject\.toml|uv\.lock' \
+            || true)
+          if [ -n "$unexpected" ]; then
+            echo "$unexpected"
             echo "::error::the paths above are tracked but are not part of what this repository publishes"
             exit 1
           fi
