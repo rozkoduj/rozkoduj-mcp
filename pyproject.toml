@@ -33,6 +33,13 @@ dependencies = [
     "mcp>=2.0.0",
     "httpx2>=2.9.1",
     "pyjwt[crypto]>=2.13.0",
+    # Imported directly - the app, the middleware and the HTTP entry point are
+    # written against them. They arrive with the SDK today, which is exactly why
+    # they were easy to leave undeclared: the day the SDK stops pulling one, the
+    # documented streamable-http instruction breaks with an ImportError instead
+    # of a resolver error.
+    "starlette>=1.4.1",
+    "uvicorn>=0.52.1",
 ]
 
 [project.scripts]

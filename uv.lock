@@ -735,6 +735,8 @@ dependencies = [
     { name = "httpx2" },
     { name = "mcp" },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "starlette" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -753,6 +755,8 @@ requires-dist = [
     { name = "httpx2", specifier = ">=2.9.1" },
     { name = "mcp", specifier = ">=2.0.0" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.13.0" },
+    { name = "starlette", specifier = ">=1.4.1" },
+    { name = "uvicorn", specifier = ">=0.52.1" },
 ]
 
 [package.metadata.requires-dev]

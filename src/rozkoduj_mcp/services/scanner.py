@@ -122,6 +122,22 @@ def _rate_limit_error(context: str, exc: httpx2.HTTPStatusError) -> RuntimeError
     return RuntimeError(msg)
 
 
+def _decoded(resp: httpx2.Response, context: str) -> Any:
+    """Decode a 2xx body, refusing anything that is not a JSON object.
+
+    Every route this client calls answers with an object, and each caller feeds
+    the result straight into a response model. A path that resolves to a
+    different route - a list endpoint reached through an identifier slot, say -
+    used to surface as a raw TypeError from the model constructor instead of a
+    tool error the model can act on.
+    """
+    payload = resp.json()
+    if not isinstance(payload, dict):
+        msg = f"Unexpected response shape for {context}"
+        raise RuntimeError(msg)
+    return payload
+
+
 async def _post(path: str, context: str, **kwargs: Any) -> Any:
     """POST to the data API with auto-attached IAM auth + user headers."""
     extra = kwargs.pop("headers", None) or {}
@@ -138,7 +154,7 @@ async def _post(path: str, context: str, **kwargs: Any) -> Any:
         except httpx2.HTTPError as exc:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
-        return resp.json()
+        return _decoded(resp, context)
 
 
 async def _get(path: str, context: str, **kwargs: Any) -> Any:
@@ -160,7 +176,7 @@ async def _get(path: str, context: str, **kwargs: Any) -> Any:
         except httpx2.HTTPError as exc:
             msg = f"Data backend unavailable for {context}"
             raise RuntimeError(msg) from exc
-        return resp.json()
+        return _decoded(resp, context)
 
 
 async def _outbound_headers() -> dict[str, str]:

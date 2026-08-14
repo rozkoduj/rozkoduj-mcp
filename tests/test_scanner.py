@@ -515,7 +515,10 @@ class TestSelfHostApiKey:
         )
         with (
             patch.object(iam_client, "_fetch", new=AsyncMock(return_value="iam-token")),
-            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_should_be_ignored"}),
+            # Must be a well-formed key: a malformed one is rejected by the
+            # format check before precedence is ever consulted, so the test
+            # would pass with the two credentials in either order.
+            patch.dict("os.environ", {"ROZKODUJ_API_KEY": "rzk_" + "b" * 40}),
         ):
             iam_client.reset_cache()
             try:
@@ -630,3 +633,44 @@ class TestLogSelfHostStatus:
         ):
             log_self_host_status()
         assert "malformed" in caplog.text
+
+
+class TestUnexpectedResponseShape:
+    """A 2xx body that is not an object must not reach a response model.
+
+    Every route this client calls answers with an object and each caller feeds
+    the result straight into a model. An identifier that resolves to a
+    different route - a list endpoint reached through the identifier slot -
+    used to surface as a raw TypeError from the model constructor instead of a
+    tool error the calling model can act on.
+    """
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_get_refuses_a_list_body(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import strategy_details
+
+        mock_client.get = AsyncMock(return_value=_mock_response([{"name": "trend"}]))
+        with pytest.raises(RuntimeError, match="Unexpected response shape"):
+            await strategy_details("families")
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_post_refuses_a_list_body(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import search_research
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response(["not", "an", "object"])
+        )
+        with pytest.raises(RuntimeError, match="Unexpected response shape"):
+            await search_research(query="x")
+
+    @pytest.mark.anyio
+    @patch("rozkoduj_mcp.services.scanner.client")
+    async def test_an_object_body_still_passes(self, mock_client: AsyncMock) -> None:
+        from rozkoduj_mcp.services.scanner import search_research
+
+        mock_client.post = AsyncMock(
+            return_value=_mock_response({"query": "x", "items": []})
+        )
+        assert await search_research(query="x") == {"query": "x", "items": []}

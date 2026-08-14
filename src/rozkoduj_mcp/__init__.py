@@ -44,6 +44,21 @@ async def _health(request: Request) -> PlainTextResponse:
     return PlainTextResponse("ok")
 
 
+# The transport runs stateless with JSON responses, so there is no session for a
+# server-initiated message to travel on and the standalone SSE stream carries
+# nothing. Without this route the SDK still accepts the GET and holds it open on
+# keepalives until the platform cuts it at 60s, so every client that opens the
+# optional stream after `initialize` parks a request slot and reconnects forever.
+# The spec's answer for a server that does not offer the stream is 405, which
+# tells the client once instead of timing it out on every cycle.
+async def _mcp_stream_not_offered(request: Request) -> PlainTextResponse:
+    return PlainTextResponse(
+        "Method Not Allowed",
+        status_code=405,
+        headers={"Allow": "POST"},
+    )
+
+
 # RFC 9728 protected-resource metadata. This is the one spec-backed discovery
 # path and the only one a client is guaranteed to consume: the draft .well-known
 # manifest proposals (SEP-1649 / SEP-1960) remain unmerged, and the 2026-07-28
@@ -90,6 +105,9 @@ def build_app() -> Starlette:
                 "/.well-known/oauth-protected-resource/mcp",
                 _oauth_protected_resource,
             ),
+            # GET only - a POST partial-matches here and falls through to the
+            # mounted transport below, which is what serves the protocol.
+            Route("/mcp", _mcp_stream_not_offered, methods=["GET"]),
             Mount(
                 "/",
                 app=mcp.streamable_http_app(

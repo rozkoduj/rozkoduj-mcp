@@ -127,3 +127,33 @@ class TestInvalidBearerChallenge:
             "/.well-known/oauth-protected-resource/mcp", headers=self._BAD_AUTH
         )
         assert resp.status_code == 200
+
+
+class TestStandaloneStreamNotOffered:
+    """GET on the protocol endpoint.
+
+    The transport runs stateless with JSON responses, so the spec's optional
+    server-to-client stream carries nothing. Answering 405 tells a client that
+    once; without it the SDK accepts the GET and holds the connection on
+    keepalives until the platform cuts it, so every client that opens the
+    stream reconnects on a loop.
+    """
+
+    def test_get_is_refused_with_405(self, app_client: TestClient) -> None:
+        resp = app_client.get("/mcp")
+        assert resp.status_code == 405
+        assert resp.headers["allow"] == "POST"
+
+    def test_post_still_reaches_the_transport(self, app_client: TestClient) -> None:
+        # The GET-only route must partial-match and fall through, not shadow
+        # the mounted transport that serves the protocol.
+        resp = app_client.post(
+            "/mcp",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+            },
+        )
+        assert resp.status_code == 200
+        assert "result" in resp.json()

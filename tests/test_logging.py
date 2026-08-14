@@ -10,7 +10,11 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from rozkoduj_mcp.logging import RequestLoggingMiddleware, current_trace_header
+from rozkoduj_mcp.logging import (
+    RequestLoggingMiddleware,
+    _forwardable,
+    current_trace_header,
+)
 
 
 async def _ok(request: Request) -> JSONResponse:
@@ -132,3 +136,71 @@ class TestTracePropagation:
         assert seen == ["xyz/0;o=1"]
         # Reset after the request completes - leak would poison the next call.
         assert current_trace_header.get() is None
+
+
+class TestClientIpAttribution:
+    """The logged address must name the caller, not the proxy in front."""
+
+    @staticmethod
+    def _logged_ip(capsys: pytest.CaptureFixture[str], **kwargs: object) -> object:
+        entry = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+        return entry["ip"]
+
+    def test_uses_rightmost_forwarded_hop(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # Only the last hop is appended by the trusted frontend; everything to
+        # the left of it is caller-supplied and therefore spoofable.
+        client.get(
+            "/test",
+            headers={"X-Forwarded-For": "203.0.113.9, 70.41.3.18, 150.172.238.178"},
+        )
+        assert self._logged_ip(capsys) == "150.172.238.178"
+
+    def test_ignores_an_unparsable_forwarded_value(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        client.get("/test", headers={"X-Forwarded-For": "203.0.113.9, not-an-ip"})
+        assert self._logged_ip(capsys) == "testclient"
+
+    def test_falls_back_to_the_socket_peer(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        client.get("/test")
+        assert self._logged_ip(capsys) == "testclient"
+
+
+class TestTraceHeaderIsSafeToForward:
+    """A forwarded trace header goes back onto the wire, so it is filtered.
+
+    Inbound headers decode as latin-1, so a caller can put bytes in here that
+    the outbound client cannot encode. Forwarding one raised a bare
+    UnicodeEncodeError out of every tool call in that request.
+    """
+
+    def test_accepts_an_ordinary_value(self) -> None:
+        assert _forwardable("105445aa7843bc8bf206b120001000/1;o=1") is not None
+
+    def test_rejects_non_ascii(self) -> None:
+        assert _forwardable("\xe9abc/0;o=1") is None
+
+    def test_rejects_control_characters(self) -> None:
+        assert _forwardable("abc\x01def/0;o=1") is None
+
+    def test_rejects_an_overlong_value(self) -> None:
+        assert _forwardable("a" * 201) is None
+
+    def test_a_rejected_header_is_not_bound_for_forwarding(self) -> None:
+        seen: list[str | None] = []
+
+        async def _capture(request: Request) -> PlainTextResponse:
+            seen.append(current_trace_header.get())
+            return PlainTextResponse("ok")
+
+        app = Starlette(
+            routes=[Route("/cap", _capture)],
+            middleware=[Middleware(RequestLoggingMiddleware)],
+        )
+        with TestClient(app) as c:
+            c.get("/cap", headers={b"X-Cloud-Trace-Context": b"\xe9abc/0;o=1"})
+        assert seen == [None]

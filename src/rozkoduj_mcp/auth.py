@@ -198,7 +198,7 @@ class JWKSTokenVerifier(TokenVerifier):
         )
 
 
-def _trusted_client_ip(forwarded_for: str) -> str:
+def trusted_client_ip(forwarded_for: str) -> str:
     """End-client IP from X-Forwarded-For: rightmost entry, validated.
 
     Cloud Run's frontend appends the connecting client's IP and does not
@@ -252,7 +252,7 @@ class JWTAuthContextMiddleware:
                 auth_header = value.decode("latin-1", errors="ignore")
             elif name == b"x-forwarded-for":
                 forwarded_for.append(value.decode("latin-1", errors="ignore"))
-        client_ip = _trusted_client_ip(",".join(forwarded_for))
+        client_ip = trusted_client_ip(",".join(forwarded_for))
 
         # Bind identity to the anonymous default up front and keep the reset
         # tokens. verify_token overwrites these for an authenticated request;
