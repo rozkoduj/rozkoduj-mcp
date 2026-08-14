@@ -34,6 +34,17 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: rozkoduj/rozkoduj-mcp
+      - name: Only published paths are tracked
+        run: |
+          tracked=$(git ls-files \
+            'notes.md' 'scratch.md' \
+            'private.md' \
+            'draft.md')
+          if [ -n "$tracked" ]; then
+            echo "$tracked"
+            echo "::error::the paths above are tracked but are not part of what this repository publishes"
+            exit 1
+          fi
       # The image is what actually ships, and nothing above this line looks at
       # it: every other step runs against the working tree, where every file is
       # present by definition. A packaging change the Dockerfile does not carry
