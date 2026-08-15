@@ -1,11 +1,10 @@
 [project]
 name = "rozkoduj-mcp"
-# Placeholder, never a release number. `publish.yml` overwrites it from the
-# release tag, so the only build that carries a real version is the one the
-# release workflow produces. Keeping a plausible CalVer here made the container
-# - which is built from source - advertise a version that was never published,
-# so the placeholder is deliberately one that cannot be mistaken for a release.
-version = "0.0.0"
+# CalVer, `YYYY.M.D` of the release. This is the source of truth: the build
+# reads it, the container built from source reports it to clients, and the
+# publish workflow refuses to run when it disagrees with the release tag.
+# Bump it in the same change that cuts a release, or that check fails.
+version = "2026.8.15"
 description = "Market intelligence for your AI assistant - algo-trading strategies, analytics and specialized research knowledge."
 readme = "README.md"
 license = "MIT"
