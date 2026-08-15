@@ -2,11 +2,19 @@
 
 The MCP SDK builds each tool's ``output_schema`` from its return annotation and
 publishes it in ``tools/list``, so a typed model gives the calling model the
-field names up front instead of leaving them to be parsed out of a docstring.
+field names up front instead of leaving them to be parsed out of a docstring,
+and a returned value that no longer matches raises a tool error rather than
+quietly serving a response with a field missing.
 
-``extra="allow"`` on every model: a field this code does not know about yet is
-passed through rather than dropped. Optional stays optional: a nullable field
-is declared nullable even when it is populated in practice.
+Two deliberate choices:
+
+``extra="allow"`` on every model. A field this code does not know about yet is
+passed through rather than dropped, which is what a default Pydantic model would
+do. The schema documents what is known without claiming it is exhaustive.
+
+Optional stays optional. A nullable field is declared nullable here even when it
+is populated in practice - tightening it would turn a null into a tool error for
+the caller.
 """
 
 from typing import Any
@@ -34,8 +42,8 @@ class LockedInfo(_Mirror):
 
 class Strategy(_Mirror):
     """One published strategy. ``best_run`` stays an open object on purpose:
-    pinning the metric set here would make every added metric a breaking
-    change in code that only forwards it."""
+    pinning the metric set here would make every added metric a breaking change
+    in code that only forwards it."""
 
     algorithm_uid: str
     slug: str

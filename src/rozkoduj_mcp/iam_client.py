@@ -28,6 +28,7 @@ _FETCH_TIMEOUT_SECONDS: Final[float] = 3.0
 # Refresh ~5 min before the 60-min Google-ID-token expiry to dodge races.
 _CACHE_TTL_SECONDS: Final[float] = 3300.0
 
+# Audience the outbound token is minted for.
 _DEFAULT_AUDIENCE: Final[str] = os.environ.get(
     "ROZKODUJ_API_AUDIENCE", "https://api.rozkoduj.com"
 )

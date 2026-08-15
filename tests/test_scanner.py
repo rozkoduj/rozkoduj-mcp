@@ -452,8 +452,8 @@ class TestOutboundHeaders:
         self,
         mock_client: AsyncMock,
     ) -> None:
-        """The inbound trace header is propagated on the outbound call so
-        the entries correlate under one trace id.
+        """The inbound trace header is propagated on the outbound call so the
+        entries correlate under one trace id.
         """
         from rozkoduj_mcp.logging import current_trace_header
         from rozkoduj_mcp.services.scanner import search_research

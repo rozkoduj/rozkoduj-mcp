@@ -1,3 +1,4 @@
+# Allowlist: only the paths listed below are tracked; anything else is ignored.
 *
 
 # Directories are re-included so git can descend into them and reach the paths

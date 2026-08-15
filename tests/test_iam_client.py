@@ -147,8 +147,8 @@ class TestFetch:
 
     @pytest.mark.anyio
     async def test_returns_none_on_connect_error(self) -> None:
-        """Outside Cloud Run the metadata hostname fails DNS / TCP - the
-        return value must be None so callers send the request without an
+        """Off-platform the metadata hostname fails DNS / TCP - the return
+        value must be None so callers send the request without an
         Authorization header.
         """
         client = AsyncMock()

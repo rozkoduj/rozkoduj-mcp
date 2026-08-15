@@ -34,6 +34,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: rozkoduj/rozkoduj-mcp
+      # The ignore list governs what git picks up; this governs what actually
+      # got committed. A forced add bypasses the first, not the second.
       - name: Only published paths are tracked
         run: |
           unexpected=$(git ls-files \
@@ -52,20 +54,21 @@ jobs:
       # suite and then fails at deploy, after merge, with production left on the
       # previous revision. Building here moves that failure in front of the merge.
       - run: docker build -t rozkoduj-mcp:ci .
-      - name: Boundary vocabulary check
+      - name: Vocabulary gate
         env:
-          BOUNDARY_VOCAB_REGEX: ${{ secrets.BOUNDARY_VOCAB_REGEX }}
+          VOCAB_REGEX: ${{ secrets.BOUNDARY_VOCAB_REGEX }}
           IS_FORK_PR: ${{ github.event.pull_request.head.repo.fork }}
         run: |
-          if [ -z "$BOUNDARY_VOCAB_REGEX" ]; then
+          if [ -z "$VOCAB_REGEX" ]; then
             if [ "$IS_FORK_PR" = "true" ]; then
-              echo "::notice::check skipped - secrets are not exposed to fork pull requests"
+              echo "::notice::vocabulary gate skipped - secrets are not exposed to fork pull requests"
               exit 0
             fi
-            echo "::error::the check pattern is not configured, so the check cannot run"
+            echo "::error::the vocabulary gate pattern is not configured, so the gate cannot run"
             exit 1
           fi
-          hits=$(grep -rnE "$BOUNDARY_VOCAB_REGEX" --include='*.py' . \
+          # Report file:line only.
+          hits=$(grep -rnE "$VOCAB_REGEX" --include='*.py' . \
                    | grep -v '/\.venv/' | cut -d: -f1,2 || true)
           if [ -n "$hits" ]; then
             echo "$hits"
