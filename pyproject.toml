@@ -1,0 +1,113 @@
+[project]
+name = "rozkoduj-mcp"
+# Placeholder, never a release number. `publish.yml` overwrites it from the
+# release tag, so the only build that carries a real version is the one the
+# release workflow produces. Keeping a plausible CalVer here made the container
+# - which is built from source - advertise a version that was never published,
+# so the placeholder is deliberately one that cannot be mistaken for a release.
+version = "0.0.0"
+description = "Market intelligence for your AI assistant - algo-trading strategies, analytics and specialized research knowledge."
+readme = "README.md"
+license = "MIT"
+# Without this, uv_build ships no license text at all: the metadata claims MIT
+# while the wheel and sdist carry no notice for a redistributor to pass on.
+license-files = ["LICENSE"]
+requires-python = ">=3.14"
+authors = [
+    { name = "Rozkoduj" },
+]
+keywords = [
+    "mcp", "mcp-server", "trading", "strategies", "backtesting",
+    "leaderboard", "knowledge-base",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = [
+    "mcp>=2.0.0",
+    "httpx2>=2.9.1",
+    "pyjwt[crypto]>=2.13.0",
+    # Imported directly - the app, the middleware and the HTTP entry point are
+    # written against them. They arrive with the SDK today, which is exactly why
+    # they were easy to leave undeclared: the day the SDK stops pulling one, the
+    # documented streamable-http instruction breaks with an ImportError instead
+    # of a resolver error.
+    "starlette>=1.4.1",
+    "uvicorn>=0.52.1",
+]
+
+[project.scripts]
+rozkoduj-mcp = "rozkoduj_mcp:main"
+
+[project.urls]
+Homepage = "https://www.rozkoduj.com"
+Repository = "https://github.com/rozkoduj/rozkoduj-mcp"
+Issues = "https://github.com/rozkoduj/rozkoduj-mcp/issues"
+Changelog = "https://github.com/rozkoduj/rozkoduj-mcp/releases"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "anyio>=4.14.2",
+    "mypy>=2.3.0",
+    "ruff>=0.16.1",
+    "pre-commit>=4.6.1",
+    "coverage>=7.15.2",
+    # Exact pin, and deliberately so: setup-uv reads this file to pick the uv it
+    # installs, but a `>=` specifier resolves to "latest" there, which is how CI
+    # ends up floating. An `==` is the only form that actually pins. Dependabot's
+    # uv ecosystem keeps it fresh, so the pin does not go stale.
+    "uv==0.12.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.13"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF", "PTH", "PERF",
+    "S", "T20", "C4", "A", "ASYNC", "LOG", "G",
+]
+ignore = ["E501", "S101", "S104"]
+
+[tool.mypy]
+strict = true
+# Tracks the requires-python floor above - type-check against the oldest
+# interpreter the package claims to support, never a newer one.
+python_version = "3.14"
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+# Untyped JSON boundary: scanner.py wraps the data API and intentionally
+# returns Any from the _post/_get helpers, then re-types at the public
+# function signatures. Silencing one rule for one module beats 11 inline
+# `# type: ignore` comments.
+[[tool.mypy.overrides]]
+module = "rozkoduj_mcp.services.scanner"
+disable_error_code = ["no-any-return"]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "-q", "--strict-markers", "--import-mode=importlib"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+xfail_strict = true
+# Fail the suite on any warning so a dependency deprecation surfaces in CI
+# (which auto-deploys) instead of in production. The scoped ignore that used to
+# sit here silenced starlette's TestClient nudging toward its httpx2 successor;
+# httpx2 is now the only HTTP stack in the tree, so TestClient takes its native
+# path, the warning can no longer fire, and the ignore is gone with it.
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["rozkoduj_mcp"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if __name__"]

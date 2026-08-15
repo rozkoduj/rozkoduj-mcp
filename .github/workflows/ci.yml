@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv python install 3.14
+      - run: uv sync --locked --dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src/ tests/
+      - run: uv run coverage run -m pytest
+      - run: uv run coverage report --fail-under=100
+      - run: uv run coverage xml
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: rozkoduj/rozkoduj-mcp
+      # The ignore list governs what git picks up; this governs what actually
+      # got committed. A forced add bypasses the first, not the second.
+      - name: Only published paths are tracked
+        run: |
+          unexpected=$(git ls-files \
+            | grep -vE '^(src|tests|docs|\.github)/' \
+            | grep -vxE '\.dockerignore|\.env\.example|\.gitignore|\.pre-commit-config\.yaml|\.python-version|Dockerfile|LICENSE|README\.md|pyproject\.toml|uv\.lock' \
+            || true)
+          if [ -n "$unexpected" ]; then
+            echo "$unexpected"
+            echo "::error::the paths above are tracked but are not part of what this repository publishes"
+            exit 1
+          fi
+      # The image is what actually ships, and nothing above this line looks at
+      # it: every other step runs against the working tree, where every file is
+      # present by definition. A packaging change the Dockerfile does not carry
+      # - a file the build reads but the image never copies - passes the whole
+      # suite and then fails at deploy, after merge, with production left on the
+      # previous revision. Building here moves that failure in front of the merge.
+      - run: docker build -t rozkoduj-mcp:ci .
+      - run: uv cache prune --ci

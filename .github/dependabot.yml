@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # Refresh the SHA-pinned actions (pins without automation go stale).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  # uv.lock refresh - CI resolves with --locked, so updates land as PRs.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+  # Digest-pinned base image + pinned uv stage in the Dockerfile.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+  # SHA-frozen hook revs - same reason as the actions above, and the hooks run
+  # the linters, so a stale rev means local checks drift from CI.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      hooks:
+        patterns: ["*"]

@@ -1,0 +1,48 @@
+"""MCP tool: the instrument catalog and per-symbol dossiers."""
+
+from typing import Annotated
+
+from pydantic import Field
+
+from rozkoduj_mcp.server import mcp
+from rozkoduj_mcp.services import scanner
+from rozkoduj_mcp.tools import TOOL_ANNOTATIONS, Symbol
+from rozkoduj_mcp.tools.models import InstrumentResult
+
+# Catalog facet values are lowercase slugs (equity, crypto, live, ...).
+Facet = Annotated[str, Field(min_length=1, max_length=32, pattern=r"^[a-z_]+$")]
+
+
+@mcp.tool(title="Instrument catalog and dossier", annotations=TOOL_ANNOTATIONS)
+async def instrument(
+    symbol: Symbol | None = None,
+    asset_class: Facet | None = None,
+    status: Facet | None = None,
+    limit: Annotated[int, Field(ge=1, le=200)] = 50,
+    offset: Annotated[int, Field(ge=0, le=10000)] = 0,
+) -> InstrumentResult:
+    """The instrument catalog, or one instrument's dossier.
+
+    Without `symbol`: the catalog of covered markets - name, venue, asset
+    class, status - filterable by `asset_class` (`equity`, `crypto`,
+    `index`, `commodity`) or `status`. Use for "which markets do you
+    cover?", "list your crypto instruments".
+
+    With `symbol`: the dossier - identity (name, venue, currency, sector)
+    plus `stats`, the analytics summary: buy-and-hold facts (`cagr`,
+    `volatility_pct`, `max_drawdown`, `time_underwater_pct`) and the six-axis character
+    fingerprint (`fingerprint_axes`, with `verdict`). `stats` is null for freshly added
+    instruments. Case-insensitive: `aapl` finds `aapl-us`; the full slug
+    (`ry-ca`) pins one listing when a ticker trades in several markets. Use
+    for "what do you know about AAPL?", "how volatile is BTC?".
+
+    For strategies backtested on the instrument, use `leaderboard` with the
+    same symbol.
+    """
+    if symbol:
+        return InstrumentResult(**await scanner.instrument_details(symbol))
+    return InstrumentResult(
+        **await scanner.list_instruments(
+            asset_class=asset_class, status=status, limit=limit, offset=offset
+        )
+    )
