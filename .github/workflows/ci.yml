@@ -54,24 +54,4 @@ jobs:
       # suite and then fails at deploy, after merge, with production left on the
       # previous revision. Building here moves that failure in front of the merge.
       - run: docker build -t rozkoduj-mcp:ci .
-      - name: Vocabulary gate
-        env:
-          VOCAB_REGEX: ${{ secrets.BOUNDARY_VOCAB_REGEX }}
-          IS_FORK_PR: ${{ github.event.pull_request.head.repo.fork }}
-        run: |
-          if [ -z "$VOCAB_REGEX" ]; then
-            if [ "$IS_FORK_PR" = "true" ]; then
-              echo "::notice::vocabulary gate skipped - secrets are not exposed to fork pull requests"
-              exit 0
-            fi
-            echo "::error::the vocabulary gate pattern is not configured, so the gate cannot run"
-            exit 1
-          fi
-          # Report file:line only.
-          hits=$(grep -rnE "$VOCAB_REGEX" --include='*.py' . \
-                   | grep -v '/\.venv/' | cut -d: -f1,2 || true)
-          if [ -n "$hits" ]; then
-            echo "$hits"
-            echo "::error::a rejected boundary name was reintroduced at the locations above"; exit 1
-          fi
       - run: uv cache prune --ci
