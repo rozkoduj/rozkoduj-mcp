@@ -729,7 +729,7 @@ wheels = [
 
 [[package]]
 name = "rozkoduj-mcp"
-version = "0.0.0"
+version = "2026.8.15"
 source = { editable = "." }
 dependencies = [
     { name = "httpx2" },
